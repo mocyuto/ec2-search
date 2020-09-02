@@ -1,10 +1,16 @@
 [package]
-name = "ssm-to-ec2"
+name = "ssm-ec2"
 version = "0.1.0"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories = ["command-line-utilities"]
+license = "Apache-2.0"
+
+[[bin]]
+name = "ssm-ec2"
+path = "src/main.rs"
+
 
 [dependencies]
 rusoto_core = "0.45.0"

@@ -1151,7 +1151,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ssm-to-ec2"
+name = "ssm-ec2"
 version = "0.1.0"
 dependencies = [
  "rusoto_core",

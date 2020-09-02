@@ -3,14 +3,38 @@ extern crate rusoto_ec2;
 
 use rusoto_core::{Region, RusotoError};
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
+use structopt::StructOpt;
 
 use std::str;
 
+#[derive(StructOpt)]
+enum Opt {
+    #[structopt(visible_alias = "ids")]
+    InstanceIds(InstanceIdsOpt),
+}
+
+#[derive(StructOpt)]
+struct InstanceIdsOpt {
+    #[structopt(short = "q", long)]
+    query: String,
+}
+
 #[tokio::main]
 async fn main() {
-    let input: Vec<String> = std::env::args().skip(1).collect();
-    let a = get_instance_ids(input);
-    println!("{:?}", a.await);
+    match Opt::from_args() {
+        Opt::InstanceIds(opt) => instance_ids(opt),
+    }
+    .await;
+}
+
+async fn instance_ids(opt: InstanceIdsOpt) {
+    let input = opt
+        .query
+        .split(",")
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>();
+    let instances = get_instance_ids(input);
+    println!("{:?}", instances.await);
 }
 
 async fn get_instance_ids(input: Vec<String>) -> Vec<String> {

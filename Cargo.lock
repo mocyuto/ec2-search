@@ -1057,6 +1057,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusoto_ssm"
+version = "0.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e4950a5600f4aab2eeb1f525d7843acbfbc7a720275d26c2afcddbb112ffd17"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures",
+ "rusoto_core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rust-argon2"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1233,6 +1247,7 @@ version = "0.1.0"
 dependencies = [
  "rusoto_core",
  "rusoto_ec2",
+ "rusoto_ssm",
  "structopt",
  "tokio",
 ]

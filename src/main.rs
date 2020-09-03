@@ -18,9 +18,14 @@ enum Opt {
 
 #[derive(StructOpt)]
 struct InstanceIdsOpt {
-    #[structopt(short = "q", long, about = "search with asterisk")]
+    #[structopt(
+        short = "q",
+        long,
+        conflicts_with("exact_query"),
+        about = "search with asterisk"
+    )]
     query: Option<String>,
-    #[structopt(short, long = "exq", about = "search exactly")]
+    #[structopt(short, long = "exq", conflicts_with("query"), about = "search exactly")]
     exact_query: Option<String>,
 }
 
@@ -43,9 +48,6 @@ fn split(q: String, is_exact: bool) -> Vec<String> {
 }
 
 async fn instance_ids(opt: InstanceIdsOpt) {
-    if opt.query.is_none() && opt.exact_query.is_none() {
-        panic!("need to set `query` or `exact_query`")
-    }
     let mut input = opt.query.map(|q| split(q, false)).unwrap_or(vec![]);
     let mut exact_input = opt.exact_query.map(|q| split(q, true)).unwrap_or(vec![]);
     input.append(&mut exact_input);

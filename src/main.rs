@@ -9,7 +9,10 @@ use std::str;
 
 #[derive(StructOpt)]
 enum Opt {
-    #[structopt(visible_alias = "ids")]
+    #[structopt(
+        visible_alias = "ids",
+        about = "seach with query. if set comma, search OR"
+    )]
     InstanceIds(InstanceIdsOpt),
 }
 
@@ -46,10 +49,11 @@ async fn instance_ids(opt: InstanceIdsOpt) {
     let mut input = opt.query.map(|q| split(q, false)).unwrap_or(vec![]);
     let mut exact_input = opt.exact_query.map(|q| split(q, true)).unwrap_or(vec![]);
     input.append(&mut exact_input);
-    get_instance_ids(input)
-        .await
-        .iter()
-        .for_each(|i| println!("{} : {}", i.id, i.name));
+    let ids = get_instance_ids(input).await;
+    for id in &ids {
+        println!("{} : {}", id.id, id.name);
+    }
+    println!("counts: {}", &ids.len());
 }
 
 struct Instance {
@@ -68,9 +72,8 @@ async fn get_instance_ids(input: Vec<String>) -> Vec<Instance> {
             let instances = res
                 .reservations
                 .iter()
-                .flat_map(|res| res.iter().next())
+                .flat_map(|res| res.iter())
                 .flat_map(|r| r.instances.as_ref().unwrap());
-
             instances
                 .map(|i| Instance {
                     id: i.instance_id.as_ref().unwrap().to_string(),

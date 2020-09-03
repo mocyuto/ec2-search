@@ -1,16 +1,17 @@
-# ssm-ec2
+# ec2-search
 
-Login EC2 instance easily
+Search EC2 instance easily
 
 ## Installation
 
 ```sh
-$ cargo install --git https://github.com/mocyuto/ssm-ec2
+$ cargo install --git https://github.com/mocyuto/ec2-search
 ```
 
 ## Usage
 
 ```
-$ ssm-ec2 help
-$ ssm-ec2 ids  -q "*api*"
+$ ec2-search help
+$ ec2-search ids -q "*api*"
+$ ec2-search ids --exq=front-api
 ```

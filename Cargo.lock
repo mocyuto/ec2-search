@@ -260,6 +260,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "134951f4028bdadb9b84baf4232681efbf277da25144b9b0ad65df75946c422b"
 
 [[package]]
+name = "ec2-search"
+version = "0.1.0"
+dependencies = [
+ "rusoto_core",
+ "rusoto_ec2",
+ "structopt",
+ "tokio",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1057,20 +1067,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusoto_ssm"
-version = "0.45.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e4950a5600f4aab2eeb1f525d7843acbfbc7a720275d26c2afcddbb112ffd17"
-dependencies = [
- "async-trait",
- "bytes",
- "futures",
- "rusoto_core",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "rust-argon2"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1239,17 +1235,6 @@ dependencies = [
  "libc",
  "redox_syscall",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "ssm-ec2"
-version = "0.1.0"
-dependencies = [
- "rusoto_core",
- "rusoto_ec2",
- "rusoto_ssm",
- "structopt",
- "tokio",
 ]
 
 [[package]]

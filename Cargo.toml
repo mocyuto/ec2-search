@@ -1,5 +1,5 @@
 [package]
-name = "ssm-ec2"
+name = "ec2-search"
 version = "0.1.0"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
 edition = "2018"
@@ -8,13 +8,12 @@ categories = ["command-line-utilities"]
 license = "Apache-2.0"
 
 [[bin]]
-name = "ssm-ec2"
+name = "ec2-search"
 path = "src/main.rs"
 
 
 [dependencies]
 rusoto_core = "0.45.0"
 rusoto_ec2 = "0.45.0"
-rusoto_ssm = "0.45.0"
 tokio = { version = "0.2", features = ["macros"] }
 structopt = "0.3"

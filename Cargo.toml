@@ -3,9 +3,12 @@ name = "ec2-search"
 version = "0.1.0"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
 edition = "2018"
-
+repository = "https://github.com/mocyuto/ec2-search"
 categories = ["command-line-utilities"]
+keywords = ["ec2"]
 license = "Apache-2.0"
+readme = "./README.md"
+description = "search AWS ec2 easily"
 
 [[bin]]
 name = "ec2-search"

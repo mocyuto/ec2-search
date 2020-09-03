@@ -4,8 +4,13 @@ Search EC2 instance easily
 
 ## Installation
 
+With Rust's package manager cargo, you can install via:
 ```sh
-$ cargo install --git https://github.com/mocyuto/ec2-search
+$ cargo install ec2-search
+```
+If you install the latest master branch commit
+```sh
+$ cargo install --git https://github.com/mocyuto/ec2-search --branch master
 ```
 
 ## Usage

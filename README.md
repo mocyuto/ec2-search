@@ -1,4 +1,4 @@
-# ec2-search
+# ec2-search [![Build Status](https://travis-ci.com/mocyuto/ec2-search.svg?branch=master)](https://travis-ci.com/mocyuto/ec2-search)
 
 Search EC2 instance easily
 

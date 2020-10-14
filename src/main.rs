@@ -11,13 +11,18 @@ use std::str;
 enum Opt {
     #[structopt(
         visible_alias = "ids",
-        about = "seach with query. if set comma, search OR"
+        about = "seach ids with query. if set comma, search OR"
     )]
-    InstanceIds(InstanceIdsOpt),
+    InstanceIds(SearchByNameOpt),
+    #[structopt(
+        visible_alias = "ips",
+        about = "seach private ips with query. if set comma, search OR"
+    )]
+    InstancePrivateIps(SearchByNameOpt),
 }
 
 #[derive(StructOpt)]
-struct InstanceIdsOpt {
+struct SearchByNameOpt {
     #[structopt(
         short = "q",
         long,
@@ -33,6 +38,7 @@ struct InstanceIdsOpt {
 async fn main() {
     match Opt::from_args() {
         Opt::InstanceIds(opt) => instance_ids(opt).await,
+        Opt::InstancePrivateIps(opt) => instance_private_ips(opt).await,
     }
 }
 
@@ -47,22 +53,34 @@ fn split(q: String, is_exact: bool) -> Vec<String> {
     q.split(",").map(|s| format(s.to_string())).collect()
 }
 
-async fn instance_ids(opt: InstanceIdsOpt) {
+async fn instance_ids(opt: SearchByNameOpt) {
     let mut input = opt.query.map(|q| split(q, false)).unwrap_or(vec![]);
     let mut exact_input = opt.exact_query.map(|q| split(q, true)).unwrap_or(vec![]);
     input.append(&mut exact_input);
-    let ids = get_instance_ids(input).await;
-    for id in &ids {
+    let instances = get_instances(input).await;
+    for id in &instances {
         println!("{} : {}", id.id, id.name);
     }
-    println!("counts: {}", &ids.len());
+    println!("counts: {}", &instances.len());
+}
+
+async fn instance_private_ips(opt: SearchByNameOpt) {
+    let mut input = opt.query.map(|q| split(q, false)).unwrap_or(vec![]);
+    let mut exact_input = opt.exact_query.map(|q| split(q, true)).unwrap_or(vec![]);
+    input.append(&mut exact_input);
+    let instances = get_instances(input).await;
+    for i in &instances {
+        println!("{:?} : {}", i.private_ip, i.name);
+    }
+    println!("counts: {}", &instances.len());
 }
 
 struct Instance {
     id: String,
     name: String,
+    private_ip: Vec<String>,
 }
-async fn get_instance_ids(input: Vec<String>) -> Vec<Instance> {
+async fn get_instances(input: Vec<String>) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
     let mut req = DescribeInstancesRequest::default();
     req.filters = Some(vec![rusoto_ec2::Filter {
@@ -88,6 +106,13 @@ async fn get_instance_ids(input: Vec<String>) -> Vec<Instance> {
                         .map(|t| t.value.as_ref().unwrap())
                         .unwrap()
                         .to_string(),
+                    private_ip: i
+                        .network_interfaces
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .map(|ni| ni.private_ip_address.as_ref().unwrap().to_string())
+                        .collect(),
                 })
                 .collect::<Vec<_>>()
         }

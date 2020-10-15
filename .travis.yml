@@ -1,41 +1,43 @@
 language: rust
 rust: stable
+dist: xenial
 cache:
   directories:
-  - "/home/travis/.cargo"
+    - "/home/travis/.cargo"
 
 before_script:
   - rustc -V
   - cargo -V
   - cargo install --force cross --version 0.2.1
 
-DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
+release_to_github: &release_to_github
   before_deploy:
-  - git config --local user.name "Yuto Suzuki"
-  - git config --local user.email "yuutoo.advance@gmail.com"
-  - name="ec2-search-$TRAVIS_TAG-$TARGET"
-  - cp target/$TARGET/release/ec2-search $name/
-  - tar czvf $name.tar.gz $name
+    - git config --local user.name "Yuto Suzuki"
+    - git config --local user.email "yuutoo.advance@gmail.com"
+    - name="ec2-search-$TARGET"
+    - cp target/$TARGET/release/ec2-search $name
+    - tar czvf $name.tar.gz $name
   deploy:
     provider: releases
     token:
       secure: ugi9cn5zi+gAmGgxK4Xi01Fohv2o2fZhGXCggy3aga5iePerN4zz54rLTqVgiHsFFAWxexlUBXnEawjp+69R4sUnNkfOkZb/Cs8pdhC0H/WDMrCzIir+o0Nq5/uYbwLofEQjrCpjuo1llHq0x6obn9LhId2zpl/o6tWSwwjeeLo1KhK7JKSkS0TzJdwn444dUWnRBoR6csYk9BQhR6aNnKEgaaTiWZnW/QIZbWec6aHS3RZRO+SrnYUQsbG5BbVuWmtdlFeHxtnSvQcPMZrqzM8/v/phxBTpcOvhIsO3afBTtp+byktnCH3r+Cru0dAE6S8rdLe2tLI52I3mMUAu3P6wG7vI2faGo49Vy0/Sz3Ow1gdxTsmxx9ECZWtcZ8tN6b8WMIzqFaIKRE6okS/1ZlL250jYei3HvlWd7hihB5WkGBT7fMhACT4vZollEKmd9fbpVdfVGGo/i2UVORMpWQisoslX2A0BW7JWiQU3KUKbWM3vvQ9KYCmsgz60pS+t7uRe4fcNH+Q+rWacP5lmXDcSRsoBu8ci6aZ47OXC3oRdAsV84monSflCwcq7/rWXEa71npDdXb/m5qYpPzAZr1WJAgV/bHuQS/tNod5D+MJMurqrHTT7BCm6hYP+FoZo7hQwxr/c6er94xUu9Ati1/LLTp1TwqoBleY/AAJTaa8=
+    file: "ec2-search-${TARGET}.tar.gz"
+    skip_cleanup: true
     on:
       tags: true
 
 jobs:
   include:
-  - name: Test
-    os: linux
-    env: RUST_BACKTRACE=1
-    script:
-    - cargo test --locked
-    - rustup component add rustfmt-preview
-    - cargo fmt --version
-    - cargo fmt --all -- --check
-  - name: macOS Binary
-    env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
-    os: osx
-    script: cross build --release --target $TARGET --locked
-    <<: *DEPLOY_TO_GITHUB
-
+    - name: Test
+      os: linux
+      env: RUST_BACKTRACE=1
+      script:
+        - cargo test --locked
+        - rustup component add rustfmt-preview
+        - cargo fmt --version
+        - cargo fmt --all -- --check
+    - name: macOS Binary
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
+      os: osx
+      script: cross build --release --target $TARGET --locked
+      <<: *release_to_github

@@ -11,12 +11,12 @@ use std::str;
 enum Opt {
     #[structopt(
         visible_alias = "ids",
-        about = "seach ids with query. if set comma, search OR"
+        about = "search ids with query. if set comma, search OR"
     )]
     InstanceIds(SearchQueryOpt),
     #[structopt(
         visible_alias = "ips",
-        about = "seach private ips with query. if set comma, search OR"
+        about = "search private ips with query. if set comma, search OR"
     )]
     InstancePrivateIps(SearchQueryOpt),
 }

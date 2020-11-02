@@ -13,25 +13,32 @@ enum Opt {
         visible_alias = "ids",
         about = "seach ids with query. if set comma, search OR"
     )]
-    InstanceIds(SearchByNameOpt),
+    InstanceIds(SearchQueryOpt),
     #[structopt(
         visible_alias = "ips",
         about = "seach private ips with query. if set comma, search OR"
     )]
-    InstancePrivateIps(SearchByNameOpt),
+    InstancePrivateIps(SearchQueryOpt),
 }
 
 #[derive(StructOpt)]
-struct SearchByNameOpt {
+struct SearchQueryOpt {
     #[structopt(
         short = "q",
         long,
         conflicts_with("exact_query"),
-        about = "search with asterisk"
+        about = "ambiguous search with asterisk. tag name"
     )]
     query: Option<String>,
-    #[structopt(short, long = "exq", conflicts_with("query"), about = "search exactly")]
+    #[structopt(
+        short,
+        long = "exq",
+        conflicts_with("query"),
+        about = "search by name exactly"
+    )]
     exact_query: Option<String>,
+    #[structopt(long, about = "query with instance ids. `i-` can be omitted")]
+    ids: Option<String>,
 }
 
 #[tokio::main]
@@ -42,7 +49,23 @@ async fn main() {
     }
 }
 
-fn split(q: String, is_exact: bool) -> Vec<String> {
+async fn instance_ids(opt: SearchQueryOpt) {
+    let instances = get_instances(name_query(&opt), id_query(&opt)).await;
+    for id in &instances {
+        println!("{} : {}", id.id, id.name);
+    }
+    println!("counts: {}", &instances.len());
+}
+
+async fn instance_private_ips(opt: SearchQueryOpt) {
+    let instances = get_instances(name_query(&opt), id_query(&opt)).await;
+    for i in &instances {
+        println!("{:?} : {}", i.private_ip, i.name);
+    }
+    println!("counts: {}", &instances.len());
+}
+
+fn split(q: &String, is_exact: bool) -> Vec<String> {
     let format = |s| {
         if is_exact {
             format!("{}", s)
@@ -52,27 +75,24 @@ fn split(q: String, is_exact: bool) -> Vec<String> {
     };
     q.split(",").map(|s| format(s.to_string())).collect()
 }
-
-async fn instance_ids(opt: SearchByNameOpt) {
-    let mut input = opt.query.map(|q| split(q, false)).unwrap_or(vec![]);
-    let mut exact_input = opt.exact_query.map(|q| split(q, true)).unwrap_or(vec![]);
-    input.append(&mut exact_input);
-    let instances = get_instances(input).await;
-    for id in &instances {
-        println!("{} : {}", id.id, id.name);
-    }
-    println!("counts: {}", &instances.len());
+fn name_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
+    let input = opt.query.as_ref().map(|q| split(q, false));
+    let exact_input = opt.exact_query.as_ref().map(|q| split(q, true));
+    input
+        .map(|i| exact_input.map(|e| [i, e].concat()))
+        .flatten()
 }
-
-async fn instance_private_ips(opt: SearchByNameOpt) {
-    let mut input = opt.query.map(|q| split(q, false)).unwrap_or(vec![]);
-    let mut exact_input = opt.exact_query.map(|q| split(q, true)).unwrap_or(vec![]);
-    input.append(&mut exact_input);
-    let instances = get_instances(input).await;
-    for i in &instances {
-        println!("{:?} : {}", i.private_ip, i.name);
+fn id_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
+    fn add_i(s: &str) -> String {
+        if !s.contains("i-") {
+            "i-".to_string() + s
+        } else {
+            s.to_string()
+        }
     }
-    println!("counts: {}", &instances.len());
+    opt.ids
+        .as_ref()
+        .map(|q| q.split(",").map(|s| add_i(s)).collect())
 }
 
 struct Instance {
@@ -80,13 +100,16 @@ struct Instance {
     name: String,
     private_ip: Vec<String>,
 }
-async fn get_instances(input: Vec<String>) -> Vec<Instance> {
+async fn get_instances(input: Option<Vec<String>>, ids: Option<Vec<String>>) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
     let mut req = DescribeInstancesRequest::default();
-    req.filters = Some(vec![rusoto_ec2::Filter {
-        name: Some("tag:Name".to_string()),
-        values: Some(input),
-    }]);
+    req.filters = input.map(|i| {
+        vec![rusoto_ec2::Filter {
+            name: Some("tag:Name".to_string()),
+            values: Some(i),
+        }]
+    });
+    req.instance_ids = ids;
     match ec2.describe_instances(req).await {
         Ok(res) => {
             let instances = res

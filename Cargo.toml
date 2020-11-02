@@ -1,11 +1,11 @@
 [package]
 name = "ec2-search"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/mocyuto/ec2-search"
 categories = ["command-line-utilities"]
-keywords = ["ec2"]
+keywords = ["ec2","aws","cli"]
 license = "Apache-2.0"
 readme = "./README.md"
 description = "search AWS ec2 easily"

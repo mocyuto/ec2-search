@@ -97,22 +97,8 @@ async fn get_instances(input: Vec<String>) -> Vec<Instance> {
             instances
                 .map(|i| Instance {
                     id: i.instance_id.as_ref().unwrap().to_string(),
-                    name: i
-                        .tags
-                        .as_ref()
-                        .unwrap()
-                        .iter()
-                        .find(|t| t.key == Some("Name".to_string()))
-                        .map(|t| t.value.as_ref().unwrap())
-                        .unwrap()
-                        .to_string(),
-                    private_ip: i
-                        .network_interfaces
-                        .as_ref()
-                        .unwrap()
-                        .iter()
-                        .map(|ni| ni.private_ip_address.as_ref().unwrap().to_string())
-                        .collect(),
+                    name: name(i),
+                    private_ip: private_ip(i),
                 })
                 .collect::<Vec<_>>()
         }
@@ -125,4 +111,26 @@ async fn get_instances(input: Vec<String>) -> Vec<Instance> {
             }
         },
     }
+}
+
+// extract Tag Name from instance
+fn name(i: &rusoto_ec2::Instance) -> String {
+    i.tags
+        .as_ref()
+        .unwrap()
+        .iter()
+        .find(|t| t.key == Some("Name".to_string()))
+        .map(|t| t.value.as_ref().unwrap())
+        .unwrap()
+        .to_string()
+}
+
+// extract private IPs from instance
+fn private_ip(i: &rusoto_ec2::Instance) -> Vec<String> {
+    i.network_interfaces
+        .as_ref()
+        .unwrap()
+        .iter()
+        .map(|ni| ni.private_ip_address.as_ref().unwrap().to_string())
+        .collect()
 }

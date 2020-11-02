@@ -25,7 +25,7 @@ $ brew install ec2-search
 ## Usage
 
 ```sh
-$ ec2-search help
+$ ec2s help
 ```
 
 ### instance-ids
@@ -34,13 +34,16 @@ display instance ids
 
 ```
 ## like search
-$ ec2-search ids -q "api"
+$ ec2s ids -q "api"
 i-012345678 : test-api1
 i-023456789 : test-api2
 counts: 2
 
 ## search exact query match
-$ ec2-search ids --exq=front-api
+$ ec2s ids --exq=front-api
+
+## search with ids
+$ ec2s ids --ids i-abcde12345
 ```
 
 ### instance-private-ips
@@ -48,7 +51,7 @@ $ ec2-search ids --exq=front-api
 display instance private ips.
 
 ```sh
-$ ec2-search ips -q "api"
+$ ec2s ips -q "api"
 ["10.0.0.1"] : test-api1
 ["10.0.0.2"] : test-api2
 counts: 2

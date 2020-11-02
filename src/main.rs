@@ -65,15 +65,15 @@ async fn instance_private_ips(opt: SearchQueryOpt) {
     println!("counts: {}", &instances.len());
 }
 
-fn split(q: &String, is_exact: bool) -> Vec<String> {
-    let format = |s| {
+fn split(q: &str, is_exact: bool) -> Vec<String> {
+    let format = |s: &str| {
         if is_exact {
-            format!("{}", s)
+            s.to_string()
         } else {
             format!("*{}*", s)
         }
     };
-    q.split(",").map(|s| format(s.to_string())).collect()
+    q.split(',').map(|s| format(s)).collect()
 }
 fn name_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
     let input = opt.query.as_ref().map(|q| split(q, false));
@@ -92,7 +92,7 @@ fn id_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
     }
     opt.ids
         .as_ref()
-        .map(|q| q.split(",").map(|s| add_i(s)).collect())
+        .map(|q| q.split(',').map(|s| add_i(s)).collect())
 }
 
 struct Instance {

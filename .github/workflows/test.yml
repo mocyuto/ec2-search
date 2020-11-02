@@ -1,0 +1,56 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  style:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v2
+
+        - uses: actions-rs/toolchain@v1
+          with:
+            toolchain: nightly
+            components: rustfmt, clippy
+            override: true
+
+        - name: Install alsa
+          run: sudo apt-get install --no-install-recommends libasound2-dev
+
+        - name: Install udev
+          run: sudo apt-get install --no-install-recommends libudev-dev
+
+        - name: Check the format
+          run: cargo +nightly fmt --all -- --check
+
+        - name: Run clippy
+          run: cargo clippy -- -D warnings
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-cargo-check-test-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo check
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-C debuginfo=0 -D warnings"
+
+      - name: Run tests
+        run: cargo test --workspace
+        if: ${{ runner.os == 'Linux' }}
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-C debuginfo=0 -D warnings"
+

@@ -1,4 +1,4 @@
-# ec2-search [![Build Status](https://travis-ci.com/mocyuto/ec2-search.svg?branch=master)](https://travis-ci.com/mocyuto/ec2-search)
+# ec2-search ![Test](https://github.com/mocyuto/ec2-search/workflows/Test/badge.svg?branch=master)
 
 Search EC2 instance easily
 
@@ -16,6 +16,7 @@ $ cargo install --git https://github.com/mocyuto/ec2-search --branch master
 ```
 
 ### Homebrew
+macOS or Linux
 
 ```sh
 $ brew tap mocyuto/ec2-search

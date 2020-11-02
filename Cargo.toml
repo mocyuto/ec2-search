@@ -11,7 +11,7 @@ readme = "./README.md"
 description = "search AWS ec2 easily"
 
 [[bin]]
-name = "ec2-search"
+name = "ec2s"
 path = "src/main.rs"
 
 

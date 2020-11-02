@@ -69,7 +69,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            target/${{ matrix.target }}/release/ec2-searchi-${{ matrix.artifact_prefix }}.tar.gz
+            target/${{ matrix.target }}/release/ec2-search-${{ matrix.artifact_prefix }}.tar.gz
             target/${{ matrix.target }}/release/ec2-search-${{ matrix.artifact_prefix }}.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

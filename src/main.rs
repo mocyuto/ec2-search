@@ -1,11 +1,12 @@
+extern crate roxmltree;
 extern crate rusoto_core;
 extern crate rusoto_ec2;
 
+use roxmltree::Document;
 use rusoto_core::{Region, RusotoError};
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
-use structopt::StructOpt;
-
 use std::str;
+use structopt::StructOpt;
 
 #[derive(StructOpt)]
 enum Opt {
@@ -127,10 +128,22 @@ async fn get_instances(input: Option<Vec<String>>, ids: Option<Vec<String>>) -> 
         }
         Err(error) => match error {
             RusotoError::Unknown(ref e) => {
-                panic!("{}", str::from_utf8(&e.body).unwrap());
+                let doc = Document::parse(&e.body_as_str()).unwrap();
+                let finder = |s: &str| {
+                    doc.descendants()
+                        .find(|n| n.has_tag_name(s))
+                        .map(|n| n.text())
+                        .flatten()
+                        .unwrap_or("unknown")
+                };
+                panic!(
+                    "[ERROR] code:{}, message: {}",
+                    finder("Code"),
+                    finder("Message")
+                );
             }
             _ => {
-                panic!("Should have a typed error from EC2");
+                panic!("[ERROR] Should have a typed error from EC2");
             }
         },
     }

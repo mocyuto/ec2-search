@@ -29,11 +29,18 @@ $ brew install ec2-search
 $ ec2s help
 ```
 
-### instance-ids
+### AWS credentials
 
-display instance ids
+ec2-search needs aws credentials, so you need to set credentials.
+You can use Environment value or `"~/.aws/credentials"`.
 
-```
+For more information, see [AWS Credentials](https://github.com/rusoto/rusoto/blob/master/AWS-CREDENTIALS.md)
+
+### Instance-ids
+
+Display instance ids
+
+```sh
 ## like search
 $ ec2s ids -q "api"
 i-012345678 : test-api1
@@ -47,9 +54,9 @@ $ ec2s ids --exq=front-api
 $ ec2s ids --ids i-abcde12345
 ```
 
-### instance-private-ips
+### Instance-private-ips
 
-display instance private ips.
+Display instance private IPs.
 
 ```sh
 $ ec2s ips -q "api"

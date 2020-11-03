@@ -20,3 +20,4 @@ rusoto_core = "0.45.0"
 rusoto_ec2 = "0.45.0"
 tokio = { version = "0.2", features = ["macros"] }
 structopt = "0.3"
+roxmltree = "0.13.0"

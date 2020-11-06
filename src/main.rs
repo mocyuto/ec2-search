@@ -79,9 +79,11 @@ fn split(q: &str, is_exact: bool) -> Vec<String> {
 fn name_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
     let input = opt.query.as_ref().map(|q| split(q, false));
     let exact_input = opt.exact_query.as_ref().map(|q| split(q, true));
-    input
-        .map(|i| exact_input.map(|e| [i, e].concat()))
-        .flatten()
+    if input.is_none() && exact_input.is_none() {
+        None
+    } else {
+        Some([input.unwrap_or_default(), exact_input.unwrap_or_default()].concat())
+    }
 }
 fn id_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
     fn add_i(s: &str) -> String {
@@ -169,4 +171,53 @@ fn private_ip(i: &rusoto_ec2::Instance) -> Vec<String> {
         .iter()
         .map(|ni| ni.private_ip_address.as_ref().unwrap().to_string())
         .collect()
+}
+
+#[test]
+fn test_name_query() {
+    let opt = SearchQueryOpt {
+        query: Some("test".to_string()),
+        exact_query: None,
+        ids: None,
+    };
+    assert_eq!(name_query(&opt), Some(vec!["*test*".to_string()]));
+    let opt = SearchQueryOpt {
+        query: Some("api,test".to_string()),
+        exact_query: None,
+        ids: None,
+    };
+    assert_eq!(
+        name_query(&opt),
+        Some(vec!["*api*".to_string(), "*test*".to_string()])
+    );
+    let opt = SearchQueryOpt {
+        query: None,
+        exact_query: Some("ipa".to_string()),
+        ids: None,
+    };
+    assert_eq!(name_query(&opt), Some(vec!["ipa".to_string()]));
+}
+#[test]
+fn test_id_query() {
+    let opt = SearchQueryOpt {
+        query: None,
+        exact_query: None,
+        ids: Some("1234".to_string()),
+    };
+    assert_eq!(id_query(&opt), Some(vec!["i-1234".to_string()]));
+    let opt = SearchQueryOpt {
+        query: None,
+        exact_query: None,
+        ids: Some("i-1234".to_string()),
+    };
+    assert_eq!(id_query(&opt), Some(vec!["i-1234".to_string()]));
+    let opt = SearchQueryOpt {
+        query: None,
+        exact_query: None,
+        ids: Some("i-1234,3333".to_string()),
+    };
+    assert_eq!(
+        id_query(&opt),
+        Some(vec!["i-1234".to_string(), "i-3333".to_string()])
+    );
 }

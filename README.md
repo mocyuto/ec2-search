@@ -65,7 +65,7 @@ $ ec2s instance ids --ids i-abcde12345
 Display instance private IPs.
 
 ```shell script
-$ ec2s instance ips -q "api"
+$ ec2s instance prips -q "api"
 "10.0.0.1" : test-api1
 "10.0.0.2" : test-api2
 counts: 2

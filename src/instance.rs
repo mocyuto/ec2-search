@@ -15,10 +15,15 @@ pub enum InstanceOpt {
     )]
     InstanceIds(SearchQueryOpt),
     #[structopt(
-        visible_alias = "pips",
+        visible_alias = "prips",
         about = "search private ips with query. if set comma, search OR"
     )]
     PrivateIps(SearchQueryOpt),
+    #[structopt(
+        visible_alias = "prdns",
+        about = "search private ips with query. if set comma, search OR"
+    )]
+    PrivateDNS(SearchQueryOpt),
 }
 
 #[derive(Debug, StructOpt)]
@@ -45,6 +50,7 @@ pub async fn matcher(opt: InstanceOpt) {
     match opt {
         InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
         InstanceOpt::PrivateIps(opt) => instance_private_ips(opt).await,
+        InstanceOpt::PrivateDNS(opt) => instance_private_dns(opt).await,
     }
 }
 
@@ -59,7 +65,22 @@ async fn instance_ids(opt: SearchQueryOpt) {
 async fn instance_private_ips(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
     for i in &instances {
-        println!("{:?} : {}", i.private_ip, i.name);
+        println!(
+            "{:?} : {}",
+            i.private_ip.as_ref().unwrap_or(&"".to_string()),
+            i.name
+        );
+    }
+    println!("counts: {}", &instances.len());
+}
+async fn instance_private_dns(opt: SearchQueryOpt) {
+    let instances = get_instances(&opt).await;
+    for i in &instances {
+        println!(
+            "{:?} : {}",
+            i.private_dns.as_ref().unwrap_or(&"".to_string()),
+            i.name
+        );
     }
     println!("counts: {}", &instances.len());
 }
@@ -67,7 +88,8 @@ async fn instance_private_ips(opt: SearchQueryOpt) {
 struct Instance {
     id: String,
     name: String,
-    private_ip: Vec<String>,
+    private_ip: Option<String>,
+    private_dns: Option<String>,
 }
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
@@ -90,7 +112,8 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
                 .map(|i| Instance {
                     id: i.instance_id.as_ref().unwrap().to_string(),
                     name: name(i),
-                    private_ip: private_ip(i),
+                    private_ip: i.private_ip_address.as_ref().map(|s| s.to_string()),
+                    private_dns: i.private_dns_name.as_ref().map(|s| s.to_string()),
                 })
                 .collect::<Vec<_>>()
         }
@@ -208,14 +231,4 @@ fn name(i: &rusoto_ec2::Instance) -> String {
         .map(|t| t.value.as_ref().unwrap())
         .unwrap()
         .to_string()
-}
-
-// extract private IPs from instance
-fn private_ip(i: &rusoto_ec2::Instance) -> Vec<String> {
-    i.network_interfaces
-        .as_ref()
-        .unwrap()
-        .iter()
-        .map(|ni| ni.private_ip_address.as_ref().unwrap().to_string())
-        .collect()
 }

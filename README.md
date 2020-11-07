@@ -7,25 +7,25 @@ Search EC2 instance easily
 ### Cargo Install
 
 With Rust's package manager cargo, you can install via:
-```sh
+```shell script
 $ cargo install ec2-search
 ```
 If you install the latest master branch commit
-```sh
+```shell script
 $ cargo install --git https://github.com/mocyuto/ec2-search --branch master
 ```
 
 ### Homebrew
 macOS or Linux
 
-```sh
+```shell script
 $ brew tap mocyuto/ec2-search
 $ brew install ec2-search
 ```
 
 ## Usage
 
-```sh
+```shell script
 $ ec2s help
 ```
 
@@ -36,31 +36,37 @@ You can use Environment value or `"~/.aws/credentials"`.
 
 For more information, see [AWS Credentials](https://github.com/rusoto/rusoto/blob/master/AWS-CREDENTIALS.md)
 
-### Instance-ids
+## Instance
 
-Display instance ids
+Search instance info.
+```shell script
+$ ec2s instance help
+```
 
-```sh
+#### instance ids
+display instance ids
+
+```shell script
 ## like search
-$ ec2s ids -q "api"
+$ ec2s instance ids -q "api"
 i-012345678 : test-api1
 i-023456789 : test-api2
 counts: 2
 
 ## search exact query match
-$ ec2s ids --exq=front-api
+$ ec2s instance ids --exq=front-api
 
 ## search with ids
-$ ec2s ids --ids i-abcde12345
+$ ec2s instance ids --ids i-abcde12345
 ```
 
-### Instance-private-ips
+#### private-ips
 
 Display instance private IPs.
 
-```sh
-$ ec2s ips -q "api"
-["10.0.0.1"] : test-api1
-["10.0.0.2"] : test-api2
+```shell script
+$ ec2s instance ips -q "api"
+"10.0.0.1" : test-api1
+"10.0.0.2" : test-api2
 counts: 2
 ```

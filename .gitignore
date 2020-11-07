@@ -1,1 +1,5 @@
 /target
+
+## editor
+.idea
+.vscode

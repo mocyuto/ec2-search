@@ -28,7 +28,7 @@ jobs:
           run: cargo +nightly fmt --all -- --check
 
         - name: Run clippy
-          run: cargo clippy -- -D warnings
+          run: cargo clippy -- -D warnings --workspace
   test:
     runs-on: ubuntu-latest
 

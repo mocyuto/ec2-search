@@ -7,7 +7,21 @@ use rusoto_core::{Region, RusotoError};
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Debug, StructOpt)]
+pub enum InstanceOpt {
+    #[structopt(
+        visible_alias = "ids",
+        about = "search instance ids with query. if set comma, search OR"
+    )]
+    InstanceIds(SearchQueryOpt),
+    #[structopt(
+        visible_alias = "pips",
+        about = "search private ips with query. if set comma, search OR"
+    )]
+    PrivateIps(SearchQueryOpt),
+}
+
+#[derive(Debug, StructOpt)]
 pub struct SearchQueryOpt {
     #[structopt(
         short = "q",
@@ -27,12 +41,35 @@ pub struct SearchQueryOpt {
     ids: Option<String>,
 }
 
-pub struct Instance {
-    pub id: String,
-    pub name: String,
-    pub private_ip: Vec<String>,
+pub async fn matcher(opt: InstanceOpt) {
+    match opt {
+        InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
+        InstanceOpt::PrivateIps(opt) => instance_private_ips(opt).await,
+    }
 }
-pub async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
+
+async fn instance_ids(opt: SearchQueryOpt) {
+    let instances = get_instances(&opt).await;
+    for id in &instances {
+        println!("{} : {}", id.id, id.name);
+    }
+    println!("counts: {}", &instances.len());
+}
+
+async fn instance_private_ips(opt: SearchQueryOpt) {
+    let instances = get_instances(&opt).await;
+    for i in &instances {
+        println!("{:?} : {}", i.private_ip, i.name);
+    }
+    println!("counts: {}", &instances.len());
+}
+
+struct Instance {
+    id: String,
+    name: String,
+    private_ip: Vec<String>,
+}
+async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
     let mut req = DescribeInstancesRequest::default();
     req.filters = name_query(opt).map(|i| {

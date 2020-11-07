@@ -1,9 +1,6 @@
-mod instance;
-mod targetgroup;
-
-use instance::InstanceOpt;
+use ec2_search::instance;
+use ec2_search::targetgroup;
 use structopt::StructOpt;
-use targetgroup::TargetGroupOpt;
 
 #[derive(Debug, StructOpt)]
 struct Cli {
@@ -14,9 +11,9 @@ struct Cli {
 #[derive(Debug, StructOpt)]
 enum Command {
     #[structopt(visible_alias = "i", about = "search instance")]
-    Instance(InstanceOpt),
+    Instance(instance::InstanceOpt),
     #[structopt(visible_alias = "tg", about = "search target group")]
-    TargetGroup(TargetGroupOpt),
+    TargetGroup(targetgroup::TargetGroupOpt),
 }
 
 #[tokio::main]

@@ -1,9 +1,8 @@
-extern crate roxmltree;
 extern crate rusoto_core;
 extern crate rusoto_ec2;
 
-use roxmltree::Document;
-use rusoto_core::{Region, RusotoError};
+use crate::utils::{err_handler, name_query};
+use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use structopt::StructOpt;
 
@@ -94,7 +93,7 @@ struct Instance {
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
     let mut req = DescribeInstancesRequest::default();
-    req.filters = name_query(opt).map(|i| {
+    req.filters = name_query(&opt.query, &opt.exact_query).map(|i| {
         vec![rusoto_ec2::Filter {
             name: Some("tag:Name".to_string()),
             values: Some(i),
@@ -117,48 +116,10 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
                 })
                 .collect::<Vec<_>>()
         }
-        Err(error) => match error {
-            RusotoError::Unknown(ref e) => {
-                let doc = Document::parse(&e.body_as_str()).unwrap();
-                let finder = |s: &str| {
-                    doc.descendants()
-                        .find(|n| n.has_tag_name(s))
-                        .map(|n| n.text())
-                        .flatten()
-                        .unwrap_or("unknown")
-                };
-                panic!(
-                    "[ERROR] code:{}, message: {}",
-                    finder("Code"),
-                    finder("Message")
-                );
-            }
-            _ => {
-                panic!("[ERROR] Should have a typed error from EC2");
-            }
-        },
+        Err(err) => panic!(err_handler(err)),
     }
 }
 
-fn split(q: &str, is_exact: bool) -> Vec<String> {
-    let format = |s: &str| {
-        if is_exact {
-            s.to_string()
-        } else {
-            format!("*{}*", s)
-        }
-    };
-    q.split(',').map(|s| format(s)).collect()
-}
-fn name_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
-    let input = opt.query.as_ref().map(|q| split(q, false));
-    let exact_input = opt.exact_query.as_ref().map(|q| split(q, true));
-    if input.is_none() && exact_input.is_none() {
-        None
-    } else {
-        Some([input.unwrap_or_default(), exact_input.unwrap_or_default()].concat())
-    }
-}
 fn id_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
     fn add_i(s: &str) -> String {
         if !s.contains("i-") {
@@ -172,30 +133,6 @@ fn id_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
         .map(|q| q.split(',').map(|s| add_i(s)).collect())
 }
 
-#[test]
-fn test_name_query() {
-    let opt = SearchQueryOpt {
-        query: Some("test".to_string()),
-        exact_query: None,
-        ids: None,
-    };
-    assert_eq!(name_query(&opt), Some(vec!["*test*".to_string()]));
-    let opt = SearchQueryOpt {
-        query: Some("api,test".to_string()),
-        exact_query: None,
-        ids: None,
-    };
-    assert_eq!(
-        name_query(&opt),
-        Some(vec!["*api*".to_string(), "*test*".to_string()])
-    );
-    let opt = SearchQueryOpt {
-        query: None,
-        exact_query: Some("ipa".to_string()),
-        ids: None,
-    };
-    assert_eq!(name_query(&opt), Some(vec!["ipa".to_string()]));
-}
 #[test]
 fn test_id_query() {
     let opt = SearchQueryOpt {

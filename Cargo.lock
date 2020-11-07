@@ -266,6 +266,7 @@ dependencies = [
  "roxmltree",
  "rusoto_core",
  "rusoto_ec2",
+ "rusoto_elbv2",
  "structopt",
  "tokio",
 ]
@@ -1042,6 +1043,20 @@ name = "rusoto_ec2"
 version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5145366791ba9097d917330944ef460e1ebd67da871a8e04ad9f51cecc64375f"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures",
+ "rusoto_core",
+ "serde_urlencoded",
+ "xml-rs",
+]
+
+[[package]]
+name = "rusoto_elbv2"
+version = "0.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ea15df3375af7a5adcbede78e410c82af4969a6b64a119f9df982ea87718b2"
 dependencies = [
  "async-trait",
  "bytes",

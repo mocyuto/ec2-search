@@ -1,6 +1,3 @@
-extern crate rusoto_core;
-extern crate rusoto_ec2;
-
 use crate::utils::{err_handler, name_query};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};

@@ -1,7 +1,3 @@
-extern crate roxmltree;
-extern crate rusoto_core;
-extern crate rusoto_elbv2;
-
 use rusoto_core::Region;
 use rusoto_elbv2::{DescribeTargetGroupsInput, Elb, ElbClient};
 use structopt::StructOpt;

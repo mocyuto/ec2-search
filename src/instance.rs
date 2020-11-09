@@ -1,4 +1,4 @@
-use crate::utils::{err_handler, name_query};
+use crate::utils::{err_handler, name_query, print_table};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use structopt::StructOpt;
@@ -52,32 +52,32 @@ pub async fn matcher(opt: InstanceOpt) {
 
 async fn instance_ids(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
-    for id in &instances {
-        println!("{} : {}", id.id, id.name);
-    }
+    let rows: Vec<Vec<String>> = instances
+        .iter()
+        .map(|i| vec![i.id.clone(), i.name.clone()])
+        .collect();
+    print_table(vec!["ID", "Name"], rows);
     println!("counts: {}", &instances.len());
 }
 
 async fn instance_private_ips(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
-    for i in &instances {
-        println!(
-            "{:?} : {}",
-            i.private_ip.as_ref().unwrap_or(&"".to_string()),
-            i.name
-        );
-    }
+
+    let rows: Vec<Vec<String>> = instances
+        .iter()
+        .map(|i| vec![i.private_ip.clone().unwrap_or_default(), i.name.clone()])
+        .collect();
+    print_table(vec!["Private IP", "Name"], rows);
+
     println!("counts: {}", &instances.len());
 }
 async fn instance_private_dns(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
-    for i in &instances {
-        println!(
-            "{:?} : {}",
-            i.private_dns.as_ref().unwrap_or(&"".to_string()),
-            i.name
-        );
-    }
+    let rows: Vec<Vec<String>> = instances
+        .iter()
+        .map(|i| vec![i.private_dns.clone().unwrap_or_default(), i.name.clone()])
+        .collect();
+    print_table(vec!["Private DNS", "Name"], rows);
     println!("counts: {}", &instances.len());
 }
 

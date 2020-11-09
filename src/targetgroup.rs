@@ -1,3 +1,4 @@
+use crate::utils::print_table;
 use rusoto_core::Region;
 use rusoto_elbv2::{DescribeTargetGroupsInput, Elb, ElbClient};
 use structopt::StructOpt;
@@ -22,9 +23,12 @@ pub async fn matcher(opt: TargetGroupOpt) {
 
 async fn ip_host(opt: SearchQueryOpt) {
     let tgs = get_target_groups(&opt).await;
-    for id in &tgs {
-        println!("{:?} : {}", id.port, id.name);
-    }
+    let rows: Vec<Vec<String>> = tgs
+        .iter()
+        .map(|t| vec![t.name.clone(), format!("{}", t.port)])
+        .collect();
+    print_table(vec!["Name", "Port"], rows);
+
     println!("counts: {}", &tgs.len());
 }
 struct TargetGroup {

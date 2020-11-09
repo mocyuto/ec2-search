@@ -1,3 +1,7 @@
+use cli_table::{
+    format::{Border, CellFormat, Separator, TableFormat},
+    Cell, Row, Table,
+};
 use roxmltree::Document;
 use rusoto_core::RusotoError;
 
@@ -56,4 +60,26 @@ pub fn err_handler<E>(error: RusotoError<E>) -> String {
         }
         _ => "[ERROR] unknown error".to_string(),
     }
+}
+
+pub fn print_table(header: Vec<&str>, rows: Vec<Vec<String>>) {
+    let bold = CellFormat::builder().bold(true).build();
+    let h: Vec<Row> = vec![Row::new(
+        header.iter().map(|h| Cell::new(h, bold)).collect(),
+    )];
+    let rows: Vec<Row> = rows
+        .iter()
+        .map(|r| Row::new(r.iter().map(|c| Cell::new(c, Default::default())).collect()))
+        .collect();
+    let r: Vec<Row> = h.into_iter().chain(rows).collect();
+
+    let border = Border::builder().build();
+    let separator = Separator::builder().build();
+    let format = TableFormat::new(border, separator);
+
+    let _ = match Table::new(r, format) {
+        Ok(t) => t,
+        Err(e) => panic!("{:?}", e),
+    }
+    .print_stdout();
 }

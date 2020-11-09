@@ -89,14 +89,18 @@ struct Instance {
 }
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
-    let mut req = DescribeInstancesRequest::default();
-    req.filters = name_query(&opt.query, &opt.exact_query).map(|i| {
-        vec![rusoto_ec2::Filter {
-            name: Some("tag:Name".to_string()),
-            values: Some(i),
-        }]
-    });
-    req.instance_ids = id_query(opt);
+    let req = DescribeInstancesRequest {
+        filters: name_query(&opt.query, &opt.exact_query).map(|i| {
+            vec![rusoto_ec2::Filter {
+                name: Some("tag:Name".to_string()),
+                values: Some(i),
+            }]
+        }),
+        instance_ids: id_query(opt),
+        dry_run: None,
+        max_results: None,
+        next_token: None,
+    };
     match ec2.describe_instances(req).await {
         Ok(res) => {
             let instances = res

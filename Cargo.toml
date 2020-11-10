@@ -1,6 +1,6 @@
 [package]
 name = "ec2-search"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/mocyuto/ec2-search"

@@ -99,7 +99,7 @@ async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
         Ok(res) => {
             let tgs = res.target_groups.unwrap_or_default();
             tgs.into_iter()
-                .filter(|t| search_name(&opt.query, &t.target_group_name))
+                .filter(|t| search_name(&opt.query, &t.target_group_name, &t.load_balancer_arns))
                 .map(|t| TargetGroup {
                     name: t.target_group_name.unwrap_or_default(),
                     port: t.port.unwrap_or_default(),
@@ -112,33 +112,51 @@ async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
     }
 }
 
-fn search_name(query: &Option<String>, tg_name: &Option<String>) -> bool {
+fn search_name(
+    query: &Option<String>,
+    tg_name: &Option<String>,
+    lb_arn: &Option<Vec<String>>,
+) -> bool {
     if query.is_none() || tg_name.is_none() {
         return true;
     }
     let tg: String = tg_name.as_ref().unwrap().clone();
     let qu: String = query.as_ref().unwrap().clone();
+    let lb: String = lb_arn.as_ref().map(|lv| lv.join(",")).unwrap_or_default();
     for q in qu.split(',') {
-        if tg.contains(q) {
+        if tg.contains(q) || lb.contains(q) {
             return true;
         }
     }
+
     false
 }
 #[test]
 fn test_search_name() {
     assert_eq!(
-        search_name(&Some("api".to_string()), &Some("aa".to_string())),
+        search_name(&Some("api".to_string()), &Some("aa".to_string()), &None),
         false
     );
     assert_eq!(
-        search_name(&Some("api,test".to_string()), &Some("test-api".to_string())),
+        search_name(
+            &Some("api,test".to_string()),
+            &Some("test-api".to_string()),
+            &None
+        ),
         true
     );
     assert_eq!(
-        search_name(&Some("api".to_string()), &Some("ap".to_string())),
+        search_name(&Some("api".to_string()), &Some("ap".to_string()), &None),
         false
-    )
+    );
+    assert_eq!(
+        search_name(
+            &Some("api".to_string()),
+            &Some("ap".to_string()),
+            &Some(vec!["api-lb".to_string()])
+        ),
+        true
+    );
 }
 struct TargetHealth {
     id: String,

@@ -11,6 +11,8 @@ pub enum InstanceOpt {
     PrivateIps(SearchQueryOpt),
     #[structopt(visible_alias = "prdns", about = "search private ips with query.")]
     PrivateDNS(SearchQueryOpt),
+    #[structopt(about = "search instance basic info with query.")]
+    Info(SearchQueryOpt),
 }
 
 #[derive(Debug, StructOpt)]
@@ -35,10 +37,27 @@ pub struct SearchQueryOpt {
 
 pub async fn matcher(opt: InstanceOpt) {
     match opt {
+        InstanceOpt::Info(opt) => info(opt).await,
         InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
         InstanceOpt::PrivateIps(opt) => instance_private_ips(opt).await,
         InstanceOpt::PrivateDNS(opt) => instance_private_dns(opt).await,
     }
+}
+async fn info(opt: SearchQueryOpt) {
+    let instances = get_instances(&opt).await;
+    let rows: Vec<Vec<String>> = instances
+        .iter()
+        .map(|i| {
+            vec![
+                i.id.clone(),
+                i.name.clone(),
+                i.status.clone(),
+                i.instance_type.clone(),
+            ]
+        })
+        .collect();
+    print_table(vec!["ID", "Name", "Status", "Type"], rows);
+    println!("counts: {}", &instances.len());
 }
 
 async fn instance_ids(opt: SearchQueryOpt) {
@@ -75,6 +94,8 @@ async fn instance_private_dns(opt: SearchQueryOpt) {
 struct Instance {
     id: String,
     name: String,
+    instance_type: String,
+    status: String,
     private_ip: Option<String>,
     private_dns: Option<String>,
 }
@@ -96,15 +117,16 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
         Ok(res) => {
             let instances = res
                 .reservations
-                .iter()
-                .flat_map(|res| res.iter())
-                .flat_map(|r| r.instances.as_ref().unwrap());
+                .into_iter()
+                .flat_map(|v| v.into_iter().flat_map(|r| r.instances.unwrap_or_default()));
             instances
                 .map(|i| Instance {
-                    id: i.instance_id.as_ref().unwrap().to_string(),
-                    name: name(i),
-                    private_ip: i.private_ip_address.as_ref().map(|s| s.to_string()),
-                    private_dns: i.private_dns_name.as_ref().map(|s| s.to_string()),
+                    name: name(&i),
+                    id: i.instance_id.unwrap_or_default(),
+                    status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
+                    instance_type: i.instance_type.unwrap_or_default(),
+                    private_ip: i.private_ip_address,
+                    private_dns: i.private_dns_name,
                 })
                 .collect::<Vec<_>>()
         }

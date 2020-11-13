@@ -5,12 +5,9 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub enum TargetGroupOpt {
-    #[structopt(
-        visible_alias = "lb",
-        about = "display load balancer arn with query. if set comma, search OR"
-    )]
+    #[structopt(visible_alias = "lb", about = "display load balancer arn with query.")]
     LoadBalancerArn(SearchQueryOpt),
-    #[structopt(about = "display port with query. if set comma, search OR")]
+    #[structopt(about = "display port with query.")]
     Port(SearchQueryOpt),
 
     #[structopt(about = "get target healths")]
@@ -19,7 +16,11 @@ pub enum TargetGroupOpt {
 
 #[derive(Debug, StructOpt)]
 pub struct SearchQueryOpt {
-    #[structopt(short = "q", long, about = "ambiguous search with asterisk. tag name")]
+    #[structopt(
+        short = "q",
+        long,
+        help = "ambiguous search with asterisk on target group name or ALB arn.  if set comma, search OR"
+    )]
     query: Option<String>,
 }
 

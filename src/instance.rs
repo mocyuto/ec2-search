@@ -5,20 +5,11 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub enum InstanceOpt {
-    #[structopt(
-        visible_alias = "ids",
-        about = "search instance ids with query. if set comma, search OR"
-    )]
+    #[structopt(visible_alias = "ids", about = "search instance ids with query.")]
     InstanceIds(SearchQueryOpt),
-    #[structopt(
-        visible_alias = "prips",
-        about = "search private ips with query. if set comma, search OR"
-    )]
+    #[structopt(visible_alias = "prips", about = "search private ips with query.")]
     PrivateIps(SearchQueryOpt),
-    #[structopt(
-        visible_alias = "prdns",
-        about = "search private ips with query. if set comma, search OR"
-    )]
+    #[structopt(visible_alias = "prdns", about = "search private ips with query.")]
     PrivateDNS(SearchQueryOpt),
 }
 
@@ -28,17 +19,17 @@ pub struct SearchQueryOpt {
         short = "q",
         long,
         conflicts_with("exact_query"),
-        about = "ambiguous search with asterisk. tag name"
+        help = "ambiguous search with asterisk on tag name. if set comma, search OR"
     )]
     query: Option<String>,
     #[structopt(
         short,
         long = "exq",
         conflicts_with("query"),
-        about = "search by name exactly"
+        help = "search by tag name exactly"
     )]
     exact_query: Option<String>,
-    #[structopt(long, about = "query with instance ids. `i-` can be omitted")]
+    #[structopt(long, help = "query with instance ids. `i-` can be omitted")]
     ids: Option<String>,
 }
 

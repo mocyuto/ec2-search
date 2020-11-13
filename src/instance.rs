@@ -45,50 +45,43 @@ pub async fn matcher(opt: InstanceOpt) {
 }
 async fn info(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
+    let len = instances.len();
     let rows: Vec<Vec<String>> = instances
-        .iter()
-        .map(|i| {
-            vec![
-                i.id.clone(),
-                i.name.clone(),
-                i.status.clone(),
-                i.instance_type.clone(),
-            ]
-        })
+        .into_iter()
+        .map(|i| vec![i.id, i.name, i.status, i.instance_type])
         .collect();
     print_table(vec!["ID", "Name", "Status", "Type"], rows);
-    println!("counts: {}", &instances.len());
+    println!("counts: {}", len);
 }
 
 async fn instance_ids(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
-    let rows: Vec<Vec<String>> = instances
-        .iter()
-        .map(|i| vec![i.id.clone(), i.name.clone()])
-        .collect();
+    let len = instances.len();
+    let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.id, i.name]).collect();
     print_table(vec!["ID", "Name"], rows);
-    println!("counts: {}", &instances.len());
+    println!("counts: {}", len);
 }
 
 async fn instance_private_ips(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
-
+    let len = instances.len();
     let rows: Vec<Vec<String>> = instances
-        .iter()
-        .map(|i| vec![i.private_ip.clone().unwrap_or_default(), i.name.clone()])
+        .into_iter()
+        .map(|i| vec![i.private_ip.unwrap_or_default(), i.name])
         .collect();
     print_table(vec!["Private IP", "Name"], rows);
 
-    println!("counts: {}", &instances.len());
+    println!("counts: {}", len);
 }
 async fn instance_private_dns(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
+    let len = instances.len();
     let rows: Vec<Vec<String>> = instances
-        .iter()
-        .map(|i| vec![i.private_dns.clone().unwrap_or_default(), i.name.clone()])
+        .into_iter()
+        .map(|i| vec![i.private_dns.unwrap_or_default(), i.name])
         .collect();
     print_table(vec!["Private DNS", "Name"], rows);
-    println!("counts: {}", &instances.len());
+    println!("counts: {}", len);
 }
 
 struct Instance {

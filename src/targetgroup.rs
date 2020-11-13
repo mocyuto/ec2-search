@@ -27,39 +27,36 @@ pub struct SearchQueryOpt {
 pub async fn matcher(opt: TargetGroupOpt) {
     match opt {
         TargetGroupOpt::LoadBalancerArn(opt) => load_balancer_arn(opt).await,
-        TargetGroupOpt::Port(opt) => ip_host(opt).await,
+        TargetGroupOpt::Port(opt) => port(opt).await,
         TargetGroupOpt::Health(opt) => target_health(opt).await,
     }
 }
 
 async fn load_balancer_arn(opt: SearchQueryOpt) {
     let tgs = get_target_groups(&opt).await;
+    let len = tgs.len();
     let rows: Vec<Vec<String>> = tgs
-        .iter()
+        .into_iter()
         .map(|t| {
             vec![
-                t.name.clone(),
-                t.lb_arn
-                    .as_ref()
-                    .map(|l| format!("{:?}", l))
-                    .unwrap_or_default(),
+                t.name,
+                t.lb_arn.map(|l| format!("{:?}", l)).unwrap_or_default(),
             ]
         })
         .collect();
     print_table(vec!["Name", "LB"], rows);
-
-    println!("counts: {}", &tgs.len());
+    println!("counts: {}", len);
 }
 
-async fn ip_host(opt: SearchQueryOpt) {
+async fn port(opt: SearchQueryOpt) {
     let tgs = get_target_groups(&opt).await;
+    let len = tgs.len();
     let rows: Vec<Vec<String>> = tgs
-        .iter()
-        .map(|t| vec![t.name.clone(), format!("{}", t.port)])
+        .into_iter()
+        .map(|t| vec![t.name, format!("{}", t.port)])
         .collect();
     print_table(vec!["Name", "Port"], rows);
-
-    println!("counts: {}", &tgs.len());
+    println!("counts: {}", len);
 }
 
 async fn target_health(opt: SearchQueryOpt) {
@@ -69,14 +66,13 @@ async fn target_health(opt: SearchQueryOpt) {
         return;
     }
     let h = get_target_health(tgs.first().unwrap().arn.clone()).await;
-
+    let len = h.len();
     let rows: Vec<Vec<String>> = h
-        .iter()
-        .map(|t| vec![t.id.clone(), t.port.clone(), t.status.clone()])
+        .into_iter()
+        .map(|t| vec![t.id, t.port, t.status])
         .collect();
     print_table(vec!["ID", "Port", "Status"], rows);
-
-    println!("counts: {}", &h.len());
+    println!("counts: {}", len);
 }
 
 struct TargetGroup {

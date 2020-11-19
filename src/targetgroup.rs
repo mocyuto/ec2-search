@@ -131,11 +131,11 @@ async fn target_group(
     }
 }
 
-fn search_name(query: &Option<String>, tg_name: &String, lb_arn: &Option<Vec<String>>) -> bool {
-    if query.is_none() || tg_name == "" {
+fn search_name(query: &Option<String>, tg_name: &str, lb_arn: &Option<Vec<String>>) -> bool {
+    if query.is_none() || tg_name.is_empty() {
         return true;
     }
-    let tg: String = tg_name.clone();
+    let tg: String = tg_name.to_string();
     let qu: String = query.as_ref().unwrap().clone();
     let lb: String = lb_arn.as_ref().map(|lv| lv.join(",")).unwrap_or_default();
     for q in qu.split(',') {

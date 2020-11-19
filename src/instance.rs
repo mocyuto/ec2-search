@@ -201,7 +201,7 @@ fn test_search() {
 fn name(i: &Option<Vec<rusoto_ec2::Tag>>) -> String {
     i.as_ref()
         .map(|v| {
-            v.into_iter()
+            v.iter()
                 .find(|t| t.key == Some("Name".to_string()))
                 .map(|t| t.value.clone().unwrap_or_default())
         })

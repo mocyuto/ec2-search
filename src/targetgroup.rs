@@ -83,10 +83,30 @@ struct TargetGroup {
 }
 async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
     let elb = ElbClient::new(Region::ApNortheast1);
+    let mut m: Option<String> = None;
+    let mut vector: Vec<TargetGroup> = vec![];
+    loop {
+        let (mut v, mark) = target_group(&elb, &m).await;
+        m = mark;
+        vector.append(&mut v);
+        if m.is_none() {
+            break;
+        }
+    }
+    vector
+        .into_iter()
+        .filter(|t| search_name(&opt.query, &t.name, &t.lb_arn))
+        .collect()
+}
+
+async fn target_group(
+    elb: &ElbClient,
+    marker: &Option<String>,
+) -> (Vec<TargetGroup>, Option<String>) {
     match elb
         .describe_target_groups(DescribeTargetGroupsInput {
             load_balancer_arn: None,
-            marker: None,
+            marker: marker.clone(),
             names: None,
             page_size: None,
             target_group_arns: None,
@@ -95,29 +115,27 @@ async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
     {
         Ok(res) => {
             let tgs = res.target_groups.unwrap_or_default();
-            tgs.into_iter()
-                .filter(|t| search_name(&opt.query, &t.target_group_name, &t.load_balancer_arns))
-                .map(|t| TargetGroup {
-                    name: t.target_group_name.unwrap_or_default(),
-                    port: t.port.unwrap_or_default(),
-                    arn: t.target_group_arn.unwrap_or_default(),
-                    lb_arn: t.load_balancer_arns,
-                })
-                .collect()
+            (
+                tgs.into_iter()
+                    .map(|t| TargetGroup {
+                        name: t.target_group_name.unwrap_or_default(),
+                        port: t.port.unwrap_or_default(),
+                        arn: t.target_group_arn.unwrap_or_default(),
+                        lb_arn: t.load_balancer_arns,
+                    })
+                    .collect(),
+                res.next_marker,
+            )
         }
         Err(err) => panic!(err.to_string()),
     }
 }
 
-fn search_name(
-    query: &Option<String>,
-    tg_name: &Option<String>,
-    lb_arn: &Option<Vec<String>>,
-) -> bool {
-    if query.is_none() || tg_name.is_none() {
+fn search_name(query: &Option<String>, tg_name: &str, lb_arn: &Option<Vec<String>>) -> bool {
+    if query.is_none() || tg_name.is_empty() {
         return true;
     }
-    let tg: String = tg_name.as_ref().unwrap().clone();
+    let tg: String = tg_name.to_string();
     let qu: String = query.as_ref().unwrap().clone();
     let lb: String = lb_arn.as_ref().map(|lv| lv.join(",")).unwrap_or_default();
     for q in qu.split(',') {
@@ -131,25 +149,34 @@ fn search_name(
 #[test]
 fn test_search_name() {
     assert_eq!(
-        search_name(&Some("api".to_string()), &Some("aa".to_string()), &None),
+        search_name(&Some("api".to_string()), &"aa".to_string(), &None),
         false
     );
     assert_eq!(
         search_name(
+            &Some("aa".to_string()),
+            &"".to_string(),
+            &Some(vec!["aa".to_string()])
+        ),
+        true
+    );
+
+    assert_eq!(
+        search_name(
             &Some("api,test".to_string()),
-            &Some("test-api".to_string()),
+            &"test-api".to_string(),
             &None
         ),
         true
     );
     assert_eq!(
-        search_name(&Some("api".to_string()), &Some("ap".to_string()), &None),
+        search_name(&Some("api".to_string()), &"ap".to_string(), &None),
         false
     );
     assert_eq!(
         search_name(
             &Some("api".to_string()),
-            &Some("ap".to_string()),
+            &"ap".to_string(),
             &Some(vec!["api-lb".to_string()])
         ),
         true

@@ -1,4 +1,4 @@
-use crate::utils::{err_handler, name_query, print_table};
+use crate::utils::{err_handler, print_table};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use structopt::StructOpt;
@@ -23,16 +23,7 @@ pub struct SearchQueryOpt {
         conflicts_with("exact_query"),
         help = "ambiguous search with asterisk on tag name. if set comma, search OR"
     )]
-    query: Option<String>,
-    #[structopt(
-        short,
-        long = "exq",
-        conflicts_with("query"),
-        help = "search by tag name exactly"
-    )]
-    exact_query: Option<String>,
-    #[structopt(long, help = "query with instance ids. `i-` can be omitted")]
-    ids: Option<String>,
+    query: String,
 }
 
 pub async fn matcher(opt: InstanceOpt) {
@@ -94,17 +85,25 @@ struct Instance {
 }
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
+    let mut m: Option<String> = None;
+    let mut vector: Vec<Instance> = vec![];
+    loop {
+        let (mut v, mark) = instances(&ec2, &m).await;
+        m = mark;
+        vector.append(&mut v);
+        if m.is_none() {
+            break;
+        }
+    }
+    vector.into_iter().filter(|i| search(i, &opt)).collect()
+}
+async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, Option<String>) {
     let req = DescribeInstancesRequest {
-        filters: name_query(&opt.query, &opt.exact_query).map(|i| {
-            vec![rusoto_ec2::Filter {
-                name: Some("tag:Name".to_string()),
-                values: Some(i),
-            }]
-        }),
-        instance_ids: id_query(opt),
+        filters: None,
+        instance_ids: None,
         dry_run: None,
         max_results: None,
-        next_token: None,
+        next_token: marker.clone(),
     };
     match ec2.describe_instances(req).await {
         Ok(res) => {
@@ -112,67 +111,108 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
                 .reservations
                 .into_iter()
                 .flat_map(|v| v.into_iter().flat_map(|r| r.instances.unwrap_or_default()));
-            instances
-                .map(|i| Instance {
-                    name: name(&i),
-                    id: i.instance_id.unwrap_or_default(),
-                    status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
-                    instance_type: i.instance_type.unwrap_or_default(),
-                    private_ip: i.private_ip_address,
-                    private_dns: i.private_dns_name,
-                })
-                .collect::<Vec<_>>()
+            (
+                instances
+                    .map(|i| Instance {
+                        name: name(&i.tags),
+                        id: i.instance_id.unwrap_or_default(),
+                        status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
+                        instance_type: i.instance_type.unwrap_or_default(),
+                        private_ip: i.private_ip_address,
+                        private_dns: i.private_dns_name,
+                    })
+                    .collect::<Vec<_>>(),
+                res.next_token,
+            )
         }
         Err(err) => panic!(err_handler(err)),
     }
 }
 
-fn id_query(opt: &SearchQueryOpt) -> Option<Vec<String>> {
-    fn add_i(s: &str) -> String {
-        if !s.contains("i-") {
-            "i-".to_string() + s
-        } else {
-            s.to_string()
+fn search(i: &Instance, opt: &SearchQueryOpt) -> bool {
+    for q in opt.query.split(',') {
+        if i.name.contains(q)
+            || i.id.contains(q)
+            || i.private_dns.as_ref().filter(|d| d.contains(q)).is_some()
+        {
+            return true;
         }
     }
-    opt.ids
-        .as_ref()
-        .map(|q| q.split(',').map(|s| add_i(s)).collect())
+    false
 }
-
 #[test]
-fn test_id_query() {
-    let opt = SearchQueryOpt {
-        query: None,
-        exact_query: None,
-        ids: Some("1234".to_string()),
-    };
-    assert_eq!(id_query(&opt), Some(vec!["i-1234".to_string()]));
-    let opt = SearchQueryOpt {
-        query: None,
-        exact_query: None,
-        ids: Some("i-1234".to_string()),
-    };
-    assert_eq!(id_query(&opt), Some(vec!["i-1234".to_string()]));
-    let opt = SearchQueryOpt {
-        query: None,
-        exact_query: None,
-        ids: Some("i-1234,3333".to_string()),
+fn test_search() {
+    let i = Instance {
+        id: "i-2342545".to_string(),
+        name: "api".to_string(),
+        instance_type: "t3.micro".to_string(),
+        status: "running".to_string(),
+        private_ip: Some("192.168.0.1".to_string()),
+        private_dns: Some("192.168.0.1.ap-northeast-1".to_string()),
     };
     assert_eq!(
-        id_query(&opt),
-        Some(vec!["i-1234".to_string(), "i-3333".to_string()])
+        search(
+            &i,
+            &SearchQueryOpt {
+                query: "234254".to_string()
+            }
+        ),
+        true
+    );
+    assert_eq!(
+        search(
+            &i,
+            &SearchQueryOpt {
+                query: "api,test".to_string()
+            }
+        ),
+        true
+    );
+    assert_eq!(
+        search(
+            &i,
+            &SearchQueryOpt {
+                query: "test".to_string()
+            }
+        ),
+        false
+    );
+    assert_eq!(
+        search(
+            &i,
+            &SearchQueryOpt {
+                query: "192.168".to_string()
+            }
+        ),
+        true
+    );
+    assert_eq!(
+        search(
+            &i,
+            &SearchQueryOpt {
+                query: "server,test".to_string()
+            }
+        ),
+        false
     );
 }
 
 // extract Tag Name from instance
-fn name(i: &rusoto_ec2::Instance) -> String {
-    i.tags
-        .as_ref()
-        .unwrap()
-        .iter()
-        .find(|t| t.key == Some("Name".to_string()))
-        .map(|t| t.value.as_ref().unwrap())
-        .unwrap()
-        .to_string()
+fn name(i: &Option<Vec<rusoto_ec2::Tag>>) -> String {
+    i.as_ref()
+        .map(|v| {
+            v.into_iter()
+                .find(|t| t.key == Some("Name".to_string()))
+                .map(|t| t.value.clone().unwrap_or_default())
+        })
+        .flatten()
+        .unwrap_or_default()
+}
+#[test]
+fn test_get_name_from_tag() {
+    let t: Option<Vec<rusoto_ec2::Tag>> = Some(vec![rusoto_ec2::Tag {
+        key: Some("Name".to_string()),
+        value: Some("api".to_string()),
+    }]);
+    assert_eq!(name(&t), "api".to_string());
 }

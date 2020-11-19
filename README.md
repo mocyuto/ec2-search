@@ -67,11 +67,6 @@ i-012345678  test-api1
 i-023456789  test-api2
 counts: 2
 
-## search exact query match
-$ ec2s instance ids --exq=test-api1
-
-## search with ids
-$ ec2s instance ids --ids i-abcde12345
 ```
 
 #### private-ips

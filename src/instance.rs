@@ -7,10 +7,10 @@ use structopt::StructOpt;
 pub enum InstanceOpt {
     #[structopt(visible_alias = "ids", about = "search instance ids with query.")]
     InstanceIds(SearchQueryOpt),
-    #[structopt(visible_alias = "prips", about = "search private ips with query.")]
-    PrivateIps(SearchQueryOpt),
-    #[structopt(visible_alias = "prdns", about = "search private ips with query.")]
-    PrivateDNS(SearchQueryOpt),
+    #[structopt(about = "search instance ips with query.")]
+    Ips(SearchQueryOpt),
+    #[structopt(visible_alias = "dns", about = "search instance DNS name with query.")]
+    DNSName(SearchQueryOpt),
     #[structopt(about = "search instance basic info with query.")]
     Info(SearchQueryOpt),
 }
@@ -30,8 +30,8 @@ pub async fn matcher(opt: InstanceOpt) {
     match opt {
         InstanceOpt::Info(opt) => info(opt).await,
         InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
-        InstanceOpt::PrivateIps(opt) => instance_private_ips(opt).await,
-        InstanceOpt::PrivateDNS(opt) => instance_private_dns(opt).await,
+        InstanceOpt::Ips(opt) => instance_ips(opt).await,
+        InstanceOpt::DNSName(opt) => instance_private_dns(opt).await,
     }
 }
 async fn info(opt: SearchQueryOpt) {
@@ -53,14 +53,20 @@ async fn instance_ids(opt: SearchQueryOpt) {
     println!("counts: {}", len);
 }
 
-async fn instance_private_ips(opt: SearchQueryOpt) {
+async fn instance_ips(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances
         .into_iter()
-        .map(|i| vec![i.private_ip.unwrap_or_default(), i.name])
+        .map(|i| {
+            vec![
+                i.private_ip.unwrap_or_default(),
+                i.public_ip.unwrap_or_default(),
+                i.name,
+            ]
+        })
         .collect();
-    print_table(vec!["Private IP", "Name"], rows);
+    print_table(vec!["Private IP", "Public IP", "Name"], rows);
 
     println!("counts: {}", len);
 }
@@ -69,9 +75,15 @@ async fn instance_private_dns(opt: SearchQueryOpt) {
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances
         .into_iter()
-        .map(|i| vec![i.private_dns.unwrap_or_default(), i.name])
+        .map(|i| {
+            vec![
+                i.private_dns.unwrap_or_default(),
+                i.public_dns.unwrap_or_default(),
+                i.name,
+            ]
+        })
         .collect();
-    print_table(vec!["Private DNS", "Name"], rows);
+    print_table(vec!["Private DNS", "Public DNS", "Name"], rows);
     println!("counts: {}", len);
 }
 
@@ -81,7 +93,9 @@ struct Instance {
     instance_type: String,
     status: String,
     private_ip: Option<String>,
+    public_ip: Option<String>,
     private_dns: Option<String>,
+    public_dns: Option<String>,
 }
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
@@ -119,7 +133,9 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                         status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
                         instance_type: i.instance_type.unwrap_or_default(),
                         private_ip: i.private_ip_address,
+                        public_ip: i.public_ip_address,
                         private_dns: i.private_dns_name,
+                        public_dns: i.public_dns_name,
                     })
                     .collect::<Vec<_>>(),
                 res.next_token,
@@ -149,6 +165,8 @@ fn test_search() {
         status: "running".to_string(),
         private_ip: Some("192.168.0.1".to_string()),
         private_dns: Some("192.168.0.1.ap-northeast-1".to_string()),
+        public_ip: None,
+        public_dns: None,
     };
     assert_eq!(
         search(

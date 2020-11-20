@@ -165,6 +165,8 @@ fn test_search() {
         status: "running".to_string(),
         private_ip: Some("192.168.0.1".to_string()),
         private_dns: Some("192.168.0.1.ap-northeast-1".to_string()),
+        public_ip: None,
+        public_dns: None,
     };
     assert_eq!(
         search(

@@ -69,15 +69,27 @@ counts: 2
 
 ```
 
-#### private-ips
+#### instance ips
 
-Display instance private IPs.
+Display instance public and private IPs.
 
 ```shell script
-$ ec2s instance prips -q "api"
-Private IP     Name
-10.0.0.1       test-api1
-10.0.0.2       test-api2
+$ ec2s instance ips -q "api"
+Private IP   Public IP  Name
+10.0.0.1                test-api1
+10.0.0.2                test-api2
+counts: 2
+```
+
+#### instance DNS name
+
+Display instance public and private DNS name
+
+```shell script
+$ ec2s i dns -q api
+Private DNS                                      Public DNS  Name
+ ip-10-10-10-10.ap-northeast-1.compute.internal              test-api1
+ ip-10-10-10-11.ap-northeast-1.compute.internal              test-api2
 counts: 2
 ```
 

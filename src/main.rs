@@ -1,3 +1,4 @@
+use ec2_search::autoscaling;
 use ec2_search::instance;
 use ec2_search::targetgroup;
 use structopt::StructOpt;
@@ -14,6 +15,8 @@ enum Command {
     Instance(instance::InstanceOpt),
     #[structopt(visible_alias = "tg", about = "Search target group")]
     TargetGroup(targetgroup::TargetGroupOpt),
+    #[structopt(visible_alias = "asg", about = "Search auto scaling group")]
+    AutoScalingGroup(autoscaling::AutoScalingGroupOpt),
     #[structopt(about = "Prints version information")]
     Version,
 }
@@ -23,6 +26,7 @@ async fn main() {
     match Cli::from_args().cmd {
         Command::Instance(opt) => instance::matcher(opt).await,
         Command::TargetGroup(opt) => targetgroup::matcher(opt).await,
+        Command::AutoScalingGroup(opt) => autoscaling::matcher(opt).await,
         Command::Version => version().await,
     }
 }

@@ -12,6 +12,8 @@ pub enum AutoScalingGroupOpt {
     Info(SearchQueryOpt),
     #[structopt(visible_alias = "act", about = "display activities")]
     Activities(SearchQueryOpt),
+    #[structopt(visible_alias = "inst", about = "display instances")]
+    Instances(SearchQueryOpt),
 }
 #[derive(Debug, StructOpt)]
 pub struct SearchQueryOpt {
@@ -27,6 +29,7 @@ pub async fn matcher(opt: AutoScalingGroupOpt) {
     match opt {
         AutoScalingGroupOpt::Info(opt) => info(opt).await,
         AutoScalingGroupOpt::Activities(opt) => activities(opt).await,
+        AutoScalingGroupOpt::Instances(opt) => instances(opt).await,
     }
 }
 async fn info(opt: SearchQueryOpt) {
@@ -60,6 +63,33 @@ async fn activities(opt: SearchQueryOpt) {
         .map(|t| vec![t.status, t.description, t.start_at, t.end_at])
         .collect();
     print_table(vec!["Status", "Desc", "StartTime", "EndTime"], rows);
+    println!("counts: {}", len);
+}
+
+async fn instances(opt: SearchQueryOpt) {
+    let asg = get_auto_scaling_groups(&opt).await;
+    if asg.len() != 1 {
+        println!("need to be narrowed to 1");
+        return;
+    }
+    let inst: Vec<Instance> = asg.into_iter().flat_map(|a| a.instances).collect();
+    let len = inst.len();
+    let rows: Vec<Vec<String>> = inst
+        .into_iter()
+        .map(|i| {
+            vec![
+                i.instance_id,
+                i.lifecycle_state,
+                i.instance_type.unwrap_or_default(),
+                i.availability_zone,
+                i.health_status,
+            ]
+        })
+        .collect();
+    print_table(
+        vec!["ID", "LifeCycle", "InstanceType", "AZ", "Status"],
+        rows,
+    );
     println!("counts: {}", len);
 }
 

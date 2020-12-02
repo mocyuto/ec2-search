@@ -1,13 +1,16 @@
 use crate::utils::print_table;
+use regex::Regex;
 use rusoto_core::Region;
 use rusoto_elbv2::{DescribeTargetGroupsInput, DescribeTargetHealthInput, Elb, ElbClient};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub enum TargetGroupOpt {
-    #[structopt(visible_alias = "lb", about = "display load balancer arn with query.")]
+    #[structopt(about = "display basic info")]
+    Info(SearchQueryOpt),
+    #[structopt(visible_alias = "lb", about = "display load balancer")]
     LoadBalancerArn(SearchQueryOpt),
-    #[structopt(about = "display port with query.")]
+    #[structopt(about = "display port")]
     Port(SearchQueryOpt),
 
     #[structopt(about = "get target healths")]
@@ -26,10 +29,28 @@ pub struct SearchQueryOpt {
 
 pub async fn matcher(opt: TargetGroupOpt) {
     match opt {
+        TargetGroupOpt::Info(opt) => info(opt).await,
         TargetGroupOpt::LoadBalancerArn(opt) => load_balancer_arn(opt).await,
         TargetGroupOpt::Port(opt) => port(opt).await,
         TargetGroupOpt::Health(opt) => target_health(opt).await,
     }
+}
+
+async fn info(opt: SearchQueryOpt) {
+    let tgs = get_target_groups(&opt).await;
+    let len = tgs.len();
+    let rows: Vec<Vec<String>> = tgs
+        .into_iter()
+        .map(|t| {
+            vec![
+                t.name,
+                t.target_type,
+                t.lb.map(|l| format!("{:?}", l)).unwrap_or_default(),
+            ]
+        })
+        .collect();
+    print_table(vec!["Name", "TargetType", "LB"], rows);
+    println!("counts: {}", len);
 }
 
 async fn load_balancer_arn(opt: SearchQueryOpt) {
@@ -44,7 +65,7 @@ async fn load_balancer_arn(opt: SearchQueryOpt) {
             ]
         })
         .collect();
-    print_table(vec!["Name", "LB"], rows);
+    print_table(vec!["Name", "LB arn"], rows);
     println!("counts: {}", len);
 }
 
@@ -79,6 +100,8 @@ struct TargetGroup {
     name: String,
     port: i64,
     arn: String,
+    target_type: String,
+    lb: Option<Vec<String>>,
     lb_arn: Option<Vec<String>>,
 }
 async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
@@ -121,6 +144,11 @@ async fn target_group(
                         name: t.target_group_name.unwrap_or_default(),
                         port: t.port.unwrap_or_default(),
                         arn: t.target_group_arn.unwrap_or_default(),
+                        target_type: t.target_type.unwrap_or_default(),
+                        lb: t
+                            .load_balancer_arns
+                            .as_ref()
+                            .map(|v| v.iter().map(|arn| extract_lb_name(arn)).collect()),
                         lb_arn: t.load_balancer_arns,
                     })
                     .collect(),
@@ -182,6 +210,32 @@ fn test_search_name() {
         true
     );
 }
+
+fn extract_lb_name(lb_arn: &str) -> String {
+    lazy_static! {
+        static ref ALB: Regex = Regex::new(r"^.+loadbalancer/app/(.+)/.+$").unwrap();
+        static ref NLB: Regex = Regex::new(r"^.+loadbalancer/net/(.+)/.+$").unwrap();
+    }
+
+    if lb_arn.contains(&"loadbalancer/app/") {
+        let c = ALB.captures(&lb_arn).unwrap();
+        return c[1].to_string();
+    } else if lb_arn.contains(&"loadbalancer/net/") {
+        let c = NLB.captures(&lb_arn).unwrap();
+        return c[1].to_string();
+    }
+    "".to_string()
+}
+#[test]
+fn test_extract_lb_name() {
+    assert_eq!(
+        extract_lb_name(&"arn:aws:elasticloadbalancing:ap-northeast-1:11111111:loadbalancer/app/api-alb/abcdefg123".to_string()),
+        "api-alb".to_string());
+    assert_eq!(
+        extract_lb_name(&"arn:aws:elasticloadbalancing:ap-northeast-1:11111111:loadbalancer/net/api-alb/abcdefg123".to_string()),
+        "api-alb".to_string());
+}
+
 struct TargetHealth {
     id: String,
     port: String,

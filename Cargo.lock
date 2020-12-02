@@ -276,6 +276,8 @@ name = "ec2-search"
 version = "0.7.0"
 dependencies = [
  "cli-table",
+ "lazy_static",
+ "regex",
  "roxmltree",
  "rusoto_core",
  "rusoto_ec2",

@@ -101,10 +101,59 @@ $ ec2s target-group help
 $ ec2s tg help
 ```
 
+#### Info
+
+Display Target Group info
+
+```shell script
+$ ec2s tg info -q api
+ Name            TargetType  LB
+ aaaaa-api       ip          ["aaaaa-bbbb-apialb"]
+ bbbbb-api       ip          ["bbbbb-cccc-apiinteralb"]
+ api-web         instance    ["prd-api-web"]
+counts: 5
+```
+
+#### Target Health
+
+Display Target Health
+
+```shell script
+$ ec2s tg health -q api-web
+ ID                   Port  Status
+ i-01002020202000101  80    healthy
+counts: 1
+```
+
+
 ### Auto Scaling Group
 
 ```shell script
 $ ec2s auto-scaling-group help
 # or alias
 $ ec2s asg help
+```
+
+#### Info
+
+Display Auto Scaling Group info
+```shell script
+$ ec2s asg info -q eks
+ Name               Instances  Desired  Min  Max
+ prd-eks-autoscale  7          7        1    40
+ prd-eks-stateful   6          6        4    20
+ stg-eks-autoscale  1          1        1    20
+ stg-eks-stateful   2          2        1    10
+counts: 4
+``` 
+
+#### Instances
+
+Display Auto Scaling Group Instances.
+
+```shell script
+$ ec2s asg inst -q stg-eks-api-autoscale
+ ID                   LifeCycle  InstanceType  AZ               Status
+ i-01010101010101011  InService  t3.medium     ap-northeast-1c  Healthy
+counts: 1
 ```

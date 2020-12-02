@@ -23,3 +23,5 @@ tokio = { version = "0.2", features = ["macros"] }
 structopt = "0.3"
 roxmltree = "0.13.0"
 cli-table = "0.3"
+regex = "1"
+lazy_static = "1.4"

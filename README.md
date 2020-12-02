@@ -100,3 +100,11 @@ $ ec2s target-group help
 # or alias
 $ ec2s tg help
 ```
+
+### Auto Scaling Group
+
+```shell script
+$ ec2s auto-scaling-group help
+# or alias
+$ ec2s asg help
+```

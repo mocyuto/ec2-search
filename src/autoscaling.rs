@@ -1,5 +1,8 @@
 use crate::utils::print_table;
-use rusoto_autoscaling::{AutoScalingGroupNamesType, Autoscaling, AutoscalingClient, Instance};
+use rusoto_autoscaling::{
+    AutoScalingGroupNamesType, Autoscaling, AutoscalingClient, DescribeScalingActivitiesType,
+    Instance,
+};
 use rusoto_core::Region;
 use structopt::StructOpt;
 
@@ -7,6 +10,8 @@ use structopt::StructOpt;
 pub enum AutoScalingGroupOpt {
     #[structopt(about = "display basic info")]
     Info(SearchQueryOpt),
+    #[structopt(visible_alias = "act", about = "display activities")]
+    Activities(SearchQueryOpt),
 }
 #[derive(Debug, StructOpt)]
 pub struct SearchQueryOpt {
@@ -21,6 +26,7 @@ pub struct SearchQueryOpt {
 pub async fn matcher(opt: AutoScalingGroupOpt) {
     match opt {
         AutoScalingGroupOpt::Info(opt) => info(opt).await,
+        AutoScalingGroupOpt::Activities(opt) => activities(opt).await,
     }
 }
 async fn info(opt: SearchQueryOpt) {
@@ -39,6 +45,21 @@ async fn info(opt: SearchQueryOpt) {
         })
         .collect();
     print_table(vec!["Name", "Instances", "Desired", "Min", "Max"], rows);
+    println!("counts: {}", len);
+}
+async fn activities(opt: SearchQueryOpt) {
+    let asg = get_auto_scaling_groups(&opt).await;
+    if asg.len() != 1 {
+        println!("need to be narrowed to 1");
+        return;
+    }
+    let a = get_activities(asg.first().unwrap().name.clone()).await;
+    let len = a.len();
+    let rows: Vec<Vec<String>> = a
+        .into_iter()
+        .map(|t| vec![t.status, t.description, t.start_at, t.end_at])
+        .collect();
+    print_table(vec!["Status", "Desc", "StartTime", "EndTime"], rows);
     println!("counts: {}", len);
 }
 
@@ -127,4 +148,35 @@ fn test_search_name() {
         search_name(&Some("api".to_string()), &"ap".to_string()),
         false
     );
+}
+
+struct Activity {
+    status: String,
+    description: String,
+    start_at: String,
+    end_at: String,
+}
+async fn get_activities(asg_name: String) -> Vec<Activity> {
+    let cli = AutoscalingClient::new(Region::ApNortheast1);
+    match cli
+        .describe_scaling_activities(DescribeScalingActivitiesType {
+            activity_ids: None,
+            auto_scaling_group_name: Some(asg_name),
+            max_records: None,
+            next_token: None,
+        })
+        .await
+    {
+        Ok(res) => res
+            .activities
+            .into_iter()
+            .map(|a| Activity {
+                status: a.status_code,
+                description: a.description.unwrap_or_default(),
+                start_at: a.start_time,
+                end_at: a.end_time.unwrap_or_default(),
+            })
+            .collect(),
+        Err(err) => panic!(err.to_string()),
+    }
 }

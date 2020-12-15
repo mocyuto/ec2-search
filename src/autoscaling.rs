@@ -165,7 +165,7 @@ async fn auto_scaling_group(
     }
 }
 
-fn search_name(query: &Option<String>, name: &str, tags: &Vec<Tag>) -> bool {
+fn search_name(query: &Option<String>, name: &str, tags: &[Tag]) -> bool {
     if query.is_none() || name.is_empty() {
         return true;
     }

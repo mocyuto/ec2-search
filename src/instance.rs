@@ -96,6 +96,11 @@ struct Instance {
     public_ip: Option<String>,
     private_dns: Option<String>,
     public_dns: Option<String>,
+    tags: Vec<Tag>,
+}
+struct Tag {
+    key: String,
+    value: Option<String>,
 }
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
@@ -136,6 +141,17 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                         public_ip: i.public_ip_address,
                         private_dns: i.private_dns_name,
                         public_dns: i.public_dns_name,
+                        tags: i
+                            .tags
+                            .map(|vt| {
+                                vt.into_iter()
+                                    .map(|t| Tag {
+                                        key: t.key.unwrap_or_default(),
+                                        value: t.value,
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
                     })
                     .collect::<Vec<_>>(),
                 res.next_token,
@@ -150,6 +166,9 @@ fn search(i: &Instance, opt: &SearchQueryOpt) -> bool {
         if i.name.contains(q)
             || i.id.contains(q)
             || i.private_dns.as_ref().filter(|d| d.contains(q)).is_some()
+            || i.tags
+                .iter()
+                .any(|t| t.key.contains(q) || t.value.as_ref().filter(|v| v.contains(q)).is_some())
         {
             return true;
         }
@@ -167,6 +186,10 @@ fn test_search() {
         private_dns: Some("192.168.0.1.ap-northeast-1".to_string()),
         public_ip: None,
         public_dns: None,
+        tags: vec![Tag {
+            key: "env".to_string(),
+            value: Some("production".to_string()),
+        }],
     };
     assert_eq!(
         search(
@@ -212,6 +235,15 @@ fn test_search() {
             }
         ),
         false
+    );
+    assert_eq!(
+        search(
+            &i,
+            &SearchQueryOpt {
+                query: "production".to_string()
+            }
+        ),
+        true
     );
 }
 

@@ -99,6 +99,11 @@ struct AutoScalingGroup {
     min_capacity: i64,
     max_capacity: i64,
     desired_capacity: i64,
+    tags: Vec<Tag>,
+}
+struct Tag {
+    key: String,
+    value: Option<String>,
 }
 async fn get_auto_scaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
     let elb = AutoscalingClient::new(Region::ApNortheast1);
@@ -114,7 +119,7 @@ async fn get_auto_scaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> 
     }
     vector
         .into_iter()
-        .filter(|t| search_name(&opt.query, &t.name))
+        .filter(|t| search_name(&opt.query, &t.name, &t.tags))
         .collect()
 }
 
@@ -140,6 +145,17 @@ async fn auto_scaling_group(
                         min_capacity: t.min_size,
                         max_capacity: t.max_size,
                         desired_capacity: t.desired_capacity,
+                        tags: t
+                            .tags
+                            .map(|ot| {
+                                ot.into_iter()
+                                    .map(|t| Tag {
+                                        key: t.key.unwrap_or_default(),
+                                        value: t.value,
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
                     })
                     .collect(),
                 res.next_token,
@@ -149,7 +165,7 @@ async fn auto_scaling_group(
     }
 }
 
-fn search_name(query: &Option<String>, name: &str) -> bool {
+fn search_name(query: &Option<String>, name: &str, tags: &[Tag]) -> bool {
     if query.is_none() || name.is_empty() {
         return true;
     }
@@ -159,6 +175,12 @@ fn search_name(query: &Option<String>, name: &str) -> bool {
         if tg.contains(q) {
             return true;
         }
+        if tags
+            .iter()
+            .any(|t| t.key.contains(q) || t.value.as_ref().filter(|v| v.contains(q)).is_some())
+        {
+            return true;
+        }
     }
 
     false
@@ -166,17 +188,43 @@ fn search_name(query: &Option<String>, name: &str) -> bool {
 #[test]
 fn test_search_name() {
     assert_eq!(
-        search_name(&Some("api".to_string()), &"aa".to_string()),
+        search_name(&Some("api".to_string()), &"aa".to_string(), &vec![]),
         false
     );
 
     assert_eq!(
-        search_name(&Some("api,test".to_string()), &"test-api".to_string(),),
+        search_name(
+            &Some("api,test".to_string()),
+            &"test-api".to_string(),
+            &vec![]
+        ),
         true
     );
     assert_eq!(
-        search_name(&Some("api".to_string()), &"ap".to_string()),
+        search_name(&Some("api".to_string()), &"ap".to_string(), &vec![]),
         false
+    );
+    assert_eq!(
+        search_name(
+            &Some("test".to_string()),
+            &"ap".to_string(),
+            &vec![Tag {
+                key: "test".to_string(),
+                value: None
+            }]
+        ),
+        true
+    );
+    assert_eq!(
+        search_name(
+            &Some("test".to_string()),
+            &"ap".to_string(),
+            &vec![Tag {
+                key: "tag".to_string(),
+                value: Some("test".to_string())
+            }]
+        ),
+        true
     );
 }
 

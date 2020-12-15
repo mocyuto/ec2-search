@@ -1,4 +1,7 @@
-# ec2-search ![Test](https://github.com/mocyuto/ec2-search/workflows/Test/badge.svg?branch=master)
+# ec2-search 
+![Test](https://github.com/mocyuto/ec2-search/workflows/Test/badge.svg?branch=master)
+![](https://img.shields.io/crates/v/ec2-search)
+![](https://img.shields.io/github/v/release/mocyuto/ec2-search?sort=semver)
 
 Search EC2 instance easily
 

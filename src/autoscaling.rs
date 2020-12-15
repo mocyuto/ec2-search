@@ -68,29 +68,36 @@ async fn activities(opt: SearchQueryOpt) {
 
 async fn instances(opt: SearchQueryOpt) {
     let asg = get_auto_scaling_groups(&opt).await;
-    if asg.len() != 1 {
-        println!("need to be narrowed to 1");
-        return;
-    }
-    let inst: Vec<Instance> = asg.into_iter().flat_map(|a| a.instances).collect();
-    let len = inst.len();
-    let rows: Vec<Vec<String>> = inst
+    let rows: Vec<Vec<String>> = asg
         .into_iter()
-        .map(|i| {
-            vec![
-                i.instance_id,
-                i.lifecycle_state,
-                i.instance_type.unwrap_or_default(),
-                i.availability_zone,
-                i.health_status,
-            ]
+        .flat_map(|a| {
+            let name = a.name;
+            a.instances
+                .into_iter()
+                .map(|i| {
+                    vec![
+                        name.clone(),
+                        i.instance_id,
+                        i.lifecycle_state,
+                        i.instance_type.unwrap_or_default(),
+                        i.availability_zone,
+                        i.health_status,
+                    ]
+                })
+                .collect::<Vec<_>>()
         })
         .collect();
     print_table(
-        vec!["ID", "LifeCycle", "InstanceType", "AZ", "Status"],
+        vec![
+            "ASG Name",
+            "ID",
+            "LifeCycle",
+            "InstanceType",
+            "AZ",
+            "Status",
+        ],
         rows,
-    );
-    println!("counts: {}", len);
+    )
 }
 
 struct AutoScalingGroup {

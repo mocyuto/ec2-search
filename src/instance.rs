@@ -20,7 +20,6 @@ pub struct SearchQueryOpt {
     #[structopt(
         short = "q",
         long,
-        conflicts_with("exact_query"),
         help = "ambiguous search with asterisk on tag name. if set comma, search OR"
     )]
     query: String,

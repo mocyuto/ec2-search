@@ -51,7 +51,7 @@ fn version() {
 }
 
 fn completion(s: Shell) {
-    Cli::clap().gen_completions_to(env!("CARGO_PKG_NAME"), s, &mut io::stdout())
+    Cli::clap().gen_completions_to(env!("CARGO_BIN_NAME"), s, &mut io::stdout())
 }
 #[test]
 fn test_completion() {

@@ -26,6 +26,20 @@ $ brew tap mocyuto/ec2-search
 $ brew install ec2-search
 ```
 
+### Setup Completion
+
+If you install by `brew` command, it is set **automatically**.
+Otherwise, you run below. 
+
+```zsh
+# zsh
+$ ec2s completion zsh > /usr/local/share/zsh/site-functions/_ec2s
+
+# bash
+$ ec2s completion bash > /usr/local/etc/bash_completion.d/ec2s
+```
+
+
 ## Usage
 
 ```shell script

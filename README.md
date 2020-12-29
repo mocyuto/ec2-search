@@ -22,7 +22,7 @@ $ cargo install --git https://github.com/mocyuto/ec2-search --branch master
 macOS or Linux
 
 ```shell script
-$ brew tap mocyuto/ec2-search
+$ brew tap mocyuto/tap
 $ brew install ec2-search
 ```
 

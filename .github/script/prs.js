@@ -1,6 +1,6 @@
 const simpleGit = require('simple-git');
 
-module.exports = async ({github, context}) => {
+module.exports = async ({github, path}) => {
 
     const git = simpleGit();
 

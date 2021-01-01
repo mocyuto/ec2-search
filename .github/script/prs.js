@@ -3,7 +3,7 @@ const simpleGit = require('simple-git');
 module.exports = async ({github, path}) => {
 
     const git = simpleGit(path);
-
+    console.log(path);
     const logs = await git.tags({ '--sort': '-v:refname' })
         .then((t) => {
             console.log(t);

@@ -5,10 +5,10 @@ module.exports = async ({github, path}) => {
     const git = simpleGit(path);
     const logs = await git.tags({ '--sort': '-v:refname' })
         .then((t) => {
-            console.log(t);
             const tags = t.all.slice(0, 2);
             return git.log({ 'from': tags[0], 'to': tags[1] })
         });
+    console.log(logs);
 
     const { data } = await github.pulls.list({
         owner: 'mocyuto',

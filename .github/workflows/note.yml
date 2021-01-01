@@ -10,9 +10,13 @@ jobs:
           fetch-depth: 0
       - run: npm install simple-git
       - uses: actions/github-script@v3
+        id: create-pr
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
             const script = require(`${process.env.GITHUB_WORKSPACE}/.github/script/prs.js`)
             const path = `${process.env.GITHUB_WORKSPACE}`
-            console.log(await script({github, path}))
+            return await script({github, path})
+          result-encoding: string
+      - name: Get result
+        run: echo "${{steps.create-pr.outputs.result}}"

@@ -27,8 +27,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - name: Installing Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -67,6 +65,22 @@ jobs:
           else
             shasum -a 256 ec2-search-${{ matrix.artifact_prefix }}.tar.gz > ec2-search-${{ matrix.artifact_prefix }}.sha256
           fi
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.target }}/release/ec2-search-${{ matrix.artifact_prefix }}.tar.gz
+            target/${{ matrix.target }}/release/ec2-search-${{ matrix.artifact_prefix }}.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  set-release-note:
+    name: Set Relase Note
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - run: npm install simple-git
       - uses: actions/github-script@v3
         id: create-release-note
@@ -77,13 +91,10 @@ jobs:
             const path = `${process.env.GITHUB_WORKSPACE}`
             return await script({github, path})
           result-encoding: string
-      - name: Releasing assets
+      - name: Update Releasing Note
         uses: softprops/action-gh-release@v1
         with:
           body: ${{steps.create-release-note.outputs.result}}
-          files: |
-            target/${{ matrix.target }}/release/ec2-search-${{ matrix.artifact_prefix }}.tar.gz
-            target/${{ matrix.target }}/release/ec2-search-${{ matrix.artifact_prefix }}.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

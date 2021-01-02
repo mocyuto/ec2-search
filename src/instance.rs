@@ -5,9 +5,7 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub enum InstanceOpt {
-    #[structopt(visible_alias = "ids", about = "search instance ids with query.")]
-    InstanceIds(SearchQueryOpt),
-    #[structopt(about = "search instance ips with query.")]
+    #[structopt(visible_alias = "ip", about = "search instance ips with query.")]
     Ips(SearchQueryOpt),
     #[structopt(visible_alias = "dns", about = "search instance DNS name with query.")]
     DNSName(SearchQueryOpt),
@@ -28,7 +26,6 @@ pub struct SearchQueryOpt {
 pub async fn matcher(opt: InstanceOpt) {
     match opt {
         InstanceOpt::Info(opt) => info(opt).await,
-        InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
         InstanceOpt::Ips(opt) => instance_ips(opt).await,
         InstanceOpt::DNSName(opt) => instance_private_dns(opt).await,
     }
@@ -41,14 +38,6 @@ async fn info(opt: SearchQueryOpt) {
         .map(|i| vec![i.id, i.name, i.status, i.instance_type])
         .collect();
     print_table(vec!["ID", "Name", "Status", "Type"], rows);
-    println!("counts: {}", len);
-}
-
-async fn instance_ids(opt: SearchQueryOpt) {
-    let instances = get_instances(&opt).await;
-    let len = instances.len();
-    let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.id, i.name]).collect();
-    print_table(vec!["ID", "Name"], rows);
     println!("counts: {}", len);
 }
 

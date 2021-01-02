@@ -61,11 +61,12 @@ async fn instance_ips(opt: SearchQueryOpt) {
             vec![
                 i.private_ip.unwrap_or_default(),
                 i.public_ip.unwrap_or_default(),
+                i.id,
                 i.name,
             ]
         })
         .collect();
-    print_table(vec!["Private IP", "Public IP", "Name"], rows);
+    print_table(vec!["Private IP", "Public IP", "ID", "Name"], rows);
 
     println!("counts: {}", len);
 }
@@ -78,11 +79,12 @@ async fn instance_private_dns(opt: SearchQueryOpt) {
             vec![
                 i.private_dns.unwrap_or_default(),
                 i.public_dns.unwrap_or_default(),
+                i.id,
                 i.name,
             ]
         })
         .collect();
-    print_table(vec!["Private DNS", "Public DNS", "Name"], rows);
+    print_table(vec!["Private DNS", "Public DNS", "ID", "Name"], rows);
     println!("counts: {}", len);
 }
 

@@ -71,7 +71,11 @@ pub fn print_table(header: Vec<&str>, rows: Vec<Vec<String>>) {
         .iter()
         .map(|r| Row::new(r.iter().map(|c| Cell::new(c, Default::default())).collect()))
         .collect();
-    let r: Vec<Row> = h.into_iter().chain(rows).collect();
+    let r: Vec<Row> = if header.len() == 0 {
+        rows
+    } else {
+        h.into_iter().chain(rows).collect()
+    };
 
     let border = Border::builder().build();
     let separator = Separator::builder().build();

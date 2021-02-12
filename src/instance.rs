@@ -12,7 +12,7 @@ pub enum InstanceOpt {
     #[structopt(visible_alias = "dns", about = "search instance DNS name with query.")]
     DNSName(SearchQueryOpt),
     #[structopt(about = "search instance basic info with query.")]
-    Info(SearchQueryOpt),
+    Info(SearchInfoQueryOpt),
 }
 
 #[derive(Debug, StructOpt)]
@@ -24,6 +24,17 @@ pub struct SearchQueryOpt {
     )]
     query: String,
 }
+#[derive(Debug, StructOpt)]
+pub struct SearchInfoQueryOpt {
+    #[structopt(
+        short = "q",
+        long,
+        help = "ambiguous search with asterisk on tag name. if set comma, search OR"
+    )]
+    query: String,
+    #[structopt(short = "o", help = "Output format. One of:\nname|wide")]
+    output: Option<String>,
+}
 
 pub async fn matcher(opt: InstanceOpt) {
     match opt {
@@ -33,15 +44,30 @@ pub async fn matcher(opt: InstanceOpt) {
         InstanceOpt::DNSName(opt) => instance_private_dns(opt).await,
     }
 }
-async fn info(opt: SearchQueryOpt) {
-    let instances = get_instances(&opt).await;
-    let len = instances.len();
-    let rows: Vec<Vec<String>> = instances
-        .into_iter()
-        .map(|i| vec![i.id, i.name, i.status, i.instance_type])
-        .collect();
-    print_table(vec!["ID", "Name", "Status", "Type"], rows);
-    println!("counts: {}", len);
+async fn info(opt: SearchInfoQueryOpt) {
+    let instances = get_instances(&SearchQueryOpt { query: opt.query }).await;
+    match opt.output.as_ref().map(|o| o.as_str()) {
+        Some("name") => {
+            let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.name]).collect();
+            print_table(vec![], rows);
+        }
+        Some("wide") => {
+            let rows: Vec<Vec<String>> = instances
+                .into_iter()
+                .map(|i| vec![i.id, i.name, i.status, i.instance_type])
+                .collect();
+            print_table(vec!["ID", "Name", "Status", "Type"], rows);
+        }
+        _ => {
+            let len = instances.len();
+            let rows: Vec<Vec<String>> = instances
+                .into_iter()
+                .map(|i| vec![i.id, i.name, i.status, i.instance_type])
+                .collect();
+            print_table(vec!["ID", "Name", "Status", "Type"], rows);
+            println!("counts: {}", len);
+        }
+    }
 }
 
 async fn instance_ids(opt: SearchQueryOpt) {

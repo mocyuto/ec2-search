@@ -54,9 +54,32 @@ async fn info(opt: SearchInfoQueryOpt) {
         Some("wide") => {
             let rows: Vec<Vec<String>> = instances
                 .into_iter()
-                .map(|i| vec![i.id, i.name, i.status, i.instance_type])
+                .map(|i| {
+                    vec![
+                        i.id,
+                        i.name,
+                        i.status,
+                        i.instance_type,
+                        i.private_dns,
+                        i.private_ip,
+                        i.az,
+                        i.lifecycle,
+                    ]
+                })
                 .collect();
-            print_table(vec!["ID", "Name", "Status", "Type"], rows);
+            print_table(
+                vec![
+                    "ID",
+                    "Name",
+                    "Status",
+                    "Type",
+                    "PrivateDNS",
+                    "PrivateIP",
+                    "AZ",
+                    "LifeCycle",
+                ],
+                rows,
+            );
         }
         _ => {
             let len = instances.len();
@@ -83,14 +106,7 @@ async fn instance_ips(opt: SearchQueryOpt) {
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances
         .into_iter()
-        .map(|i| {
-            vec![
-                i.private_ip.unwrap_or_default(),
-                i.public_ip.unwrap_or_default(),
-                i.id,
-                i.name,
-            ]
-        })
+        .map(|i| vec![i.private_ip, i.public_ip.unwrap_or_default(), i.id, i.name])
         .collect();
     print_table(vec!["Private IP", "Public IP", "ID", "Name"], rows);
 
@@ -103,7 +119,7 @@ async fn instance_private_dns(opt: SearchQueryOpt) {
         .into_iter()
         .map(|i| {
             vec![
-                i.private_dns.unwrap_or_default(),
+                i.private_dns,
                 i.public_dns.unwrap_or_default(),
                 i.id,
                 i.name,
@@ -119,9 +135,11 @@ struct Instance {
     name: String,
     instance_type: String,
     status: String,
-    private_ip: Option<String>,
+    az: String,
+    lifecycle: String,
+    private_ip: String,
     public_ip: Option<String>,
-    private_dns: Option<String>,
+    private_dns: String,
     public_dns: Option<String>,
     tags: Vec<Tag>,
 }
@@ -163,10 +181,16 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                         name: name(&i.tags),
                         id: i.instance_id.unwrap_or_default(),
                         status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
+                        lifecycle: i.instance_lifecycle.unwrap_or("normal".to_string()),
+                        az: i
+                            .placement
+                            .map(|p| p.availability_zone)
+                            .flatten()
+                            .unwrap_or_default(),
                         instance_type: i.instance_type.unwrap_or_default(),
-                        private_ip: i.private_ip_address,
+                        private_ip: i.private_ip_address.unwrap_or_default(),
                         public_ip: i.public_ip_address,
-                        private_dns: i.private_dns_name,
+                        private_dns: i.private_dns_name.unwrap_or_default(),
                         public_dns: i.public_dns_name,
                         tags: i
                             .tags
@@ -192,7 +216,7 @@ fn search(i: &Instance, opt: &SearchQueryOpt) -> bool {
     for q in opt.query.split(',') {
         if i.name.contains(q)
             || i.id.contains(q)
-            || i.private_dns.as_ref().filter(|d| d.contains(q)).is_some()
+            || i.private_dns.contains(q)
             || i.tags
                 .iter()
                 .any(|t| t.key.contains(q) || t.value.as_ref().filter(|v| v.contains(q)).is_some())
@@ -209,8 +233,10 @@ fn test_search() {
         name: "api".to_string(),
         instance_type: "t3.micro".to_string(),
         status: "running".to_string(),
-        private_ip: Some("192.168.0.1".to_string()),
-        private_dns: Some("192.168.0.1.ap-northeast-1".to_string()),
+        az: "ap-northeast-1".to_string(),
+        lifecycle: "normal".to_string(),
+        private_ip: "192.168.0.1".to_string(),
+        private_dns: "192.168.0.1.ap-northeast-1".to_string(),
         public_ip: None,
         public_dns: None,
         tags: vec![Tag {

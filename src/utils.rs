@@ -71,7 +71,7 @@ pub fn print_table(header: Vec<&str>, rows: Vec<Vec<String>>) {
         .iter()
         .map(|r| Row::new(r.iter().map(|c| Cell::new(c, Default::default())).collect()))
         .collect();
-    let r: Vec<Row> = if header.len() == 0 {
+    let r: Vec<Row> = if header.is_empty() {
         rows
     } else {
         h.into_iter().chain(rows).collect()

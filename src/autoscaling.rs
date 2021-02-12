@@ -161,7 +161,7 @@ async fn auto_scaling_group(
                 res.next_token,
             )
         }
-        Err(err) => panic!(err.to_string()),
+        Err(err) => panic!("{}", err.to_string()),
     }
 }
 
@@ -255,6 +255,6 @@ async fn get_activities(asg_name: String) -> Vec<Activity> {
                 end_at: a.end_time.unwrap_or_default(),
             })
             .collect(),
-        Err(err) => panic!(err.to_string()),
+        Err(err) => panic!("{}", err.to_string()),
     }
 }

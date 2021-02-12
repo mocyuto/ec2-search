@@ -10,7 +10,7 @@ pub enum InstanceOpt {
     #[structopt(about = "search instance ips with query.")]
     Ips(SearchQueryOpt),
     #[structopt(visible_alias = "dns", about = "search instance DNS name with query.")]
-    DNSName(SearchQueryOpt),
+    DnsName(SearchQueryOpt),
     #[structopt(about = "search instance basic info with query.")]
     Info(SearchInfoQueryOpt),
 }
@@ -41,12 +41,12 @@ pub async fn matcher(opt: InstanceOpt) {
         InstanceOpt::Info(opt) => info(opt).await,
         InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
         InstanceOpt::Ips(opt) => instance_ips(opt).await,
-        InstanceOpt::DNSName(opt) => instance_private_dns(opt).await,
+        InstanceOpt::DnsName(opt) => instance_private_dns(opt).await,
     }
 }
 async fn info(opt: SearchInfoQueryOpt) {
     let instances = get_instances(&SearchQueryOpt { query: opt.query }).await;
-    match opt.output.as_ref().map(|o| o.as_str()) {
+    match opt.output.as_deref() {
         Some("name") => {
             let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.name]).collect();
             print_table(vec![], rows);
@@ -181,7 +181,7 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                         name: name(&i.tags),
                         id: i.instance_id.unwrap_or_default(),
                         status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
-                        lifecycle: i.instance_lifecycle.unwrap_or("normal".to_string()),
+                        lifecycle: i.instance_lifecycle.unwrap_or_else(|| "normal".to_string()),
                         az: i
                             .placement
                             .map(|p| p.availability_zone)
@@ -208,7 +208,7 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                 res.next_token,
             )
         }
-        Err(err) => panic!(err_handler(err)),
+        Err(err) => panic!("{}", err_handler(err)),
     }
 }
 

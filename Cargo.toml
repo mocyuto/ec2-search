@@ -1,6 +1,6 @@
 [package]
 name = "ec2-search"
-version = "0.10.1"
+version = "0.11.0"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/mocyuto/ec2-search"
@@ -8,7 +8,7 @@ categories = ["command-line-utilities"]
 keywords = ["ec2","aws","cli"]
 license = "Apache-2.0"
 readme = "./README.md"
-description = "search AWS ec2 easily"
+description = "search AWS ec2 easily. named ec2s"
 
 [[bin]]
 name = "ec2s"

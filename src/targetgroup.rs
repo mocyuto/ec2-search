@@ -155,7 +155,7 @@ async fn target_group(
                 res.next_marker,
             )
         }
-        Err(err) => panic!(err.to_string()),
+        Err(err) => panic!("{}", err.to_string()),
     }
 }
 
@@ -274,6 +274,6 @@ async fn get_target_health(arn: String) -> Vec<TargetHealth> {
                     .unwrap_or_default(),
             })
             .collect(),
-        Err(err) => panic!(err.to_string()),
+        Err(err) => panic!("{}", err.to_string()),
     }
 }

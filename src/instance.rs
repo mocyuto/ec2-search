@@ -1,6 +1,7 @@
 use crate::utils::{err_handler, print_table};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
+use std::process;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -81,7 +82,7 @@ async fn info(opt: SearchInfoQueryOpt) {
                 rows,
             );
         }
-        _ => {
+        None => {
             let len = instances.len();
             let rows: Vec<Vec<String>> = instances
                 .into_iter()
@@ -89,6 +90,14 @@ async fn info(opt: SearchInfoQueryOpt) {
                 .collect();
             print_table(vec!["ID", "Name", "Status", "Type"], rows);
             println!("counts: {}", len);
+        }
+        Some(a) => {
+            eprintln!(
+                "Error: unable to match a printer suitable for the output format '{}'. \
+             allow formats are: name,wide",
+                a
+            );
+            process::exit(1);
         }
     }
 }

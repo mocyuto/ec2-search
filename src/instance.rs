@@ -1,4 +1,4 @@
-use crate::utils::{err_handler, print_table};
+use crate::utils::{err_handler, print_table, Tag};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use std::process;
@@ -152,10 +152,7 @@ struct Instance {
     public_dns: Option<String>,
     tags: Vec<Tag>,
 }
-struct Tag {
-    key: String,
-    value: Option<String>,
-}
+
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
     let mut m: Option<String> = None;

@@ -87,3 +87,50 @@ pub fn print_table(header: Vec<&str>, rows: Vec<Vec<String>>) {
     }
     .print_stdout();
 }
+
+pub struct Tag {
+    pub key: String,
+    pub value: Option<String>,
+}
+
+pub fn get_values(tags: &Vec<Tag>, keys: Vec<String>) -> Vec<Option<String>> {
+    let mut result: Vec<Option<String>> = vec![None; keys.len()];
+    for tag in tags {
+        let index = keys.iter().position(|k| k.eq(&tag.key));
+        index
+            .into_iter()
+            .for_each(|i| result[i] = tag.value.clone())
+    }
+    result
+}
+
+#[test]
+fn test_get_values() {
+    let tags = vec![
+        Tag {
+            key: "Name".to_string(),
+            value: Some("api".to_string()),
+        },
+        Tag {
+            key: "Env".to_string(),
+            value: Some("staging".to_string()),
+        },
+        Tag {
+            key: "aws:autoscaling:groupName".to_string(),
+            value: Some("spot-api".to_string()),
+        },
+    ];
+    assert_eq!(
+        get_values(&tags, vec!["Name".to_string()]),
+        vec![Some("api".to_string())],
+    );
+    assert_eq!(
+        get_values(&tags, vec!["Env".to_string()]),
+        vec![Some("staging".to_string())],
+    );
+    assert_eq!(
+        get_values(&tags, vec!["Env".to_string(), "Name".to_string()]),
+        vec![Some("staging".to_string()), Some("api".to_string())]
+    );
+    assert_eq!(get_values(&tags, vec!["env".to_string()]), vec![None]);
+}

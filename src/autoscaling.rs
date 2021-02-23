@@ -1,4 +1,4 @@
-use crate::utils::print_table;
+use crate::utils::{print_table, Tag};
 use rusoto_autoscaling::{
     AutoScalingGroupNamesType, Autoscaling, AutoscalingClient, DescribeScalingActivitiesType,
     Instance,
@@ -9,7 +9,7 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 pub enum AutoScalingGroupOpt {
     #[structopt(about = "display basic info")]
-    Info(SearchQueryOpt),
+    Info(SearchInfoQueryOpt),
     #[structopt(visible_alias = "act", about = "display activities")]
     Activities(SearchQueryOpt),
     #[structopt(visible_alias = "inst", about = "display instances")]
@@ -25,6 +25,23 @@ pub struct SearchQueryOpt {
     query: Option<String>,
 }
 
+#[derive(Debug, StructOpt)]
+pub struct SearchInfoQueryOpt {
+    #[structopt(
+        short = "q",
+        long,
+        help = "ambiguous search with asterisk on target group name or ALB arn.  if set comma, search OR"
+    )]
+    query: Option<String>,
+    #[structopt(
+        short = "T",
+        long,
+        help = "Accepts a comma separated list of tags that are going to be presented as columns.
+        Tags are case-sensitive. You can also use multiple flag options like -T tag1 -T tag2..."
+    )]
+    tag_columns: Option<String>,
+}
+
 pub async fn matcher(opt: AutoScalingGroupOpt) {
     match opt {
         AutoScalingGroupOpt::Info(opt) => info(opt).await,
@@ -32,8 +49,8 @@ pub async fn matcher(opt: AutoScalingGroupOpt) {
         AutoScalingGroupOpt::Instances(opt) => instances(opt).await,
     }
 }
-async fn info(opt: SearchQueryOpt) {
-    let asg = get_auto_scaling_groups(&opt).await;
+async fn info(opt: SearchInfoQueryOpt) {
+    let asg = get_auto_scaling_groups(&SearchQueryOpt { query: opt.query }).await;
     let len = asg.len();
     let rows: Vec<Vec<String>> = asg
         .into_iter()
@@ -108,10 +125,7 @@ struct AutoScalingGroup {
     desired_capacity: i64,
     tags: Vec<Tag>,
 }
-struct Tag {
-    key: String,
-    value: Option<String>,
-}
+
 async fn get_auto_scaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
     let elb = AutoscalingClient::new(Region::ApNortheast1);
     let mut m: Option<String> = None;

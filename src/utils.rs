@@ -14,7 +14,7 @@ pub fn name_query(query: &Option<String>, exact_q: &Option<String>) -> Option<Ve
         Some([input.unwrap_or_default(), exact_input.unwrap_or_default()].concat())
     }
 }
-fn split(q: &str, is_exact: bool) -> Vec<String> {
+pub fn split(q: &str, is_exact: bool) -> Vec<String> {
     let format = |s: &str| {
         if is_exact {
             s.to_string()
@@ -62,7 +62,7 @@ pub fn err_handler<E>(error: RusotoError<E>) -> String {
     }
 }
 
-pub fn print_table(header: Vec<&str>, rows: Vec<Vec<String>>) {
+pub fn print_table(header: Vec<String>, rows: Vec<Vec<String>>) {
     let bold = CellFormat::builder().bold(true).build();
     let h: Vec<Row> = vec![Row::new(
         header.iter().map(|h| Cell::new(h, bold)).collect(),
@@ -86,4 +86,60 @@ pub fn print_table(header: Vec<&str>, rows: Vec<Vec<String>>) {
         Err(e) => panic!("{:?}", e),
     }
     .print_stdout();
+}
+
+pub struct Tag {
+    pub key: String,
+    pub value: Option<String>,
+}
+
+// find tag values
+pub fn get_values(tags: &[Tag], keys: &[String]) -> Vec<String> {
+    let mut result: Vec<String> = vec!["".to_string(); keys.len()];
+    for tag in tags {
+        let index = keys.iter().position(|k| k.eq(&tag.key));
+        index
+            .into_iter()
+            .for_each(|i| result[i] = tag.value.as_ref().cloned().unwrap_or_default())
+    }
+    result
+}
+
+#[test]
+fn test_get_values() {
+    let tags = vec![
+        Tag {
+            key: "Name".to_string(),
+            value: Some("api".to_string()),
+        },
+        Tag {
+            key: "Env".to_string(),
+            value: Some("staging".to_string()),
+        },
+        Tag {
+            key: "aws:autoscaling:groupName".to_string(),
+            value: Some("spot-api".to_string()),
+        },
+        Tag {
+            key: "ignore-monitor".to_string(),
+            value: None,
+        },
+    ];
+    assert_eq!(
+        get_values(&tags, &vec!["Name".to_string()]),
+        vec!["api".to_string()],
+    );
+    assert_eq!(
+        get_values(&tags, &vec!["Env".to_string()]),
+        vec!["staging".to_string()],
+    );
+    assert_eq!(
+        get_values(&tags, &vec!["Env".to_string(), "Name".to_string()]),
+        vec!["staging".to_string(), "api".to_string()]
+    );
+    assert_eq!(get_values(&tags, &vec!["env".to_string()]), vec![""]);
+    assert_eq!(
+        get_values(&tags, &vec!["ignore-monitor".to_string()]),
+        vec![""]
+    );
 }

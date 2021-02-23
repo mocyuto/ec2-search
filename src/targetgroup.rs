@@ -49,7 +49,14 @@ async fn info(opt: SearchQueryOpt) {
             ]
         })
         .collect();
-    print_table(vec!["Name", "TargetType", "LB"], rows);
+    print_table(
+        vec![
+            "Name".to_string(),
+            "TargetType".to_string(),
+            "LB".to_string(),
+        ],
+        rows,
+    );
     println!("counts: {}", len);
 }
 
@@ -65,7 +72,7 @@ async fn load_balancer_arn(opt: SearchQueryOpt) {
             ]
         })
         .collect();
-    print_table(vec!["Name", "LB arn"], rows);
+    print_table(vec!["Name".to_string(), "LB arn".to_string()], rows);
     println!("counts: {}", len);
 }
 
@@ -76,7 +83,7 @@ async fn port(opt: SearchQueryOpt) {
         .into_iter()
         .map(|t| vec![t.name, format!("{}", t.port)])
         .collect();
-    print_table(vec!["Name", "Port"], rows);
+    print_table(vec!["Name".to_string(), "Port".to_string()], rows);
     println!("counts: {}", len);
 }
 
@@ -92,7 +99,10 @@ async fn target_health(opt: SearchQueryOpt) {
         .into_iter()
         .map(|t| vec![t.id, t.port, t.status])
         .collect();
-    print_table(vec!["ID", "Port", "Status"], rows);
+    print_table(
+        vec!["ID".to_string(), "Port".to_string(), "Status".to_string()],
+        rows,
+    );
     println!("counts: {}", len);
 }
 

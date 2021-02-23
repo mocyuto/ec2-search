@@ -1,4 +1,4 @@
-use crate::utils::{err_handler, print_table};
+use crate::utils::{err_handler, print_table, Tag};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use std::process;
@@ -70,14 +70,14 @@ async fn info(opt: SearchInfoQueryOpt) {
                 .collect();
             print_table(
                 vec![
-                    "ID",
-                    "Name",
-                    "Status",
-                    "Type",
-                    "PrivateDNS",
-                    "PrivateIP",
-                    "AZ",
-                    "LifeCycle",
+                    "ID".to_string(),
+                    "Name".to_string(),
+                    "Status".to_string(),
+                    "Type".to_string(),
+                    "PrivateDNS".to_string(),
+                    "PrivateIP".to_string(),
+                    "AZ".to_string(),
+                    "LifeCycle".to_string(),
                 ],
                 rows,
             );
@@ -88,7 +88,15 @@ async fn info(opt: SearchInfoQueryOpt) {
                 .into_iter()
                 .map(|i| vec![i.id, i.name, i.status, i.instance_type])
                 .collect();
-            print_table(vec!["ID", "Name", "Status", "Type"], rows);
+            print_table(
+                vec![
+                    "ID".to_string(),
+                    "Name".to_string(),
+                    "Status".to_string(),
+                    "Type".to_string(),
+                ],
+                rows,
+            );
             println!("counts: {}", len);
         }
         Some(a) => {
@@ -106,7 +114,7 @@ async fn instance_ids(opt: SearchQueryOpt) {
     let instances = get_instances(&opt).await;
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.id, i.name]).collect();
-    print_table(vec!["ID", "Name"], rows);
+    print_table(vec!["ID".to_string(), "Name".to_string()], rows);
     println!("counts: {}", len);
 }
 
@@ -117,7 +125,15 @@ async fn instance_ips(opt: SearchQueryOpt) {
         .into_iter()
         .map(|i| vec![i.private_ip, i.public_ip.unwrap_or_default(), i.id, i.name])
         .collect();
-    print_table(vec!["Private IP", "Public IP", "ID", "Name"], rows);
+    print_table(
+        vec![
+            "Private IP".to_string(),
+            "Public IP".to_string(),
+            "ID".to_string(),
+            "Name".to_string(),
+        ],
+        rows,
+    );
 
     println!("counts: {}", len);
 }
@@ -135,7 +151,15 @@ async fn instance_private_dns(opt: SearchQueryOpt) {
             ]
         })
         .collect();
-    print_table(vec!["Private DNS", "Public DNS", "ID", "Name"], rows);
+    print_table(
+        vec![
+            "Private DNS".to_string(),
+            "Public DNS".to_string(),
+            "ID".to_string(),
+            "Name".to_string(),
+        ],
+        rows,
+    );
     println!("counts: {}", len);
 }
 
@@ -152,10 +176,7 @@ struct Instance {
     public_dns: Option<String>,
     tags: Vec<Tag>,
 }
-struct Tag {
-    key: String,
-    value: Option<String>,
-}
+
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     let ec2 = Ec2Client::new(Region::ApNortheast1);
     let mut m: Option<String> = None;

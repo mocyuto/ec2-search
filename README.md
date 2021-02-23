@@ -68,8 +68,17 @@ display basic info
 $ ec2s i info -q api
 ID           Name       Status   Type
 i-012345678  test-api1  running  t2.micro
-i-023456789  test-api2  running  t3.small
-counts: 2
+counts: 1
+
+# display wide when set -o option
+$ ec2s i info -q api
+ID           Name       Status   Type     PrivateDNS                                      PrivateIP  AZ              LifeCycle
+i-012345678  test-api1  running  t2.micro ip-10-10-10-10.ap-northeast-1.compute.internal  10.0.0.1   ap-northeast-1  spot
+
+# display tag column when set -T option
+$ ec2s i info -q api -T Name,env
+ID           Name       Status   Type     Name      env
+i-012345678  test-api1  running  t2.micro test-api1 staging
 ```
 
 

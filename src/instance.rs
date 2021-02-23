@@ -33,13 +33,17 @@ pub struct SearchInfoQueryOpt {
         help = "ambiguous search with asterisk on tag name. if set comma, search OR"
     )]
     query: String,
-    #[structopt(short = "o", help = "Output format. One of:\nname|wide")]
+    #[structopt(
+        short = "o",
+        help = "Output format. One of:
+    name|wide"
+    )]
     output: Option<String>,
     #[structopt(
         short = "T",
         long,
         help = "Accepts a comma separated list of tags that are going to be presented as columns.
-        Tags are case-sensitive."
+    Tags are case-sensitive."
     )]
     tag_columns: Option<String>,
 }

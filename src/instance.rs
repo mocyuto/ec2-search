@@ -1,4 +1,4 @@
-use crate::utils::{err_handler, print_table, Tag};
+use crate::utils::{err_handler, get_values, print_table, split, Tag};
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use std::process;
@@ -35,6 +35,13 @@ pub struct SearchInfoQueryOpt {
     query: String,
     #[structopt(short = "o", help = "Output format. One of:\nname|wide")]
     output: Option<String>,
+    #[structopt(
+        short = "T",
+        long,
+        help = "Accepts a comma separated list of tags that are going to be presented as columns.
+        Tags are case-sensitive."
+    )]
+    tag_columns: Option<String>,
 }
 
 pub async fn matcher(opt: InstanceOpt) {
@@ -47,6 +54,10 @@ pub async fn matcher(opt: InstanceOpt) {
 }
 async fn info(opt: SearchInfoQueryOpt) {
     let instances = get_instances(&SearchQueryOpt { query: opt.query }).await;
+    let tag_column: Vec<String> = opt
+        .tag_columns
+        .map(|t| split(&*t, true))
+        .unwrap_or_default();
     match opt.output.as_deref() {
         Some("name") => {
             let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.name]).collect();
@@ -56,6 +67,7 @@ async fn info(opt: SearchInfoQueryOpt) {
             let rows: Vec<Vec<String>> = instances
                 .into_iter()
                 .map(|i| {
+                    let r = get_values(&i.tags, &tag_column);
                     vec![
                         i.id,
                         i.name,
@@ -66,6 +78,9 @@ async fn info(opt: SearchInfoQueryOpt) {
                         i.az,
                         i.lifecycle,
                     ]
+                    .into_iter()
+                    .chain(r)
+                    .collect()
                 })
                 .collect();
             print_table(
@@ -78,7 +93,10 @@ async fn info(opt: SearchInfoQueryOpt) {
                     "PrivateIP".to_string(),
                     "AZ".to_string(),
                     "LifeCycle".to_string(),
-                ],
+                ]
+                .into_iter()
+                .chain(tag_column)
+                .collect(),
                 rows,
             );
         }
@@ -86,7 +104,13 @@ async fn info(opt: SearchInfoQueryOpt) {
             let len = instances.len();
             let rows: Vec<Vec<String>> = instances
                 .into_iter()
-                .map(|i| vec![i.id, i.name, i.status, i.instance_type])
+                .map(|i| {
+                    let r = get_values(&i.tags, &tag_column);
+                    vec![i.id, i.name, i.status, i.instance_type]
+                        .into_iter()
+                        .chain(r)
+                        .collect()
+                })
                 .collect();
             print_table(
                 vec![
@@ -94,7 +118,10 @@ async fn info(opt: SearchInfoQueryOpt) {
                     "Name".to_string(),
                     "Status".to_string(),
                     "Type".to_string(),
-                ],
+                ]
+                .into_iter()
+                .chain(tag_column)
+                .collect(),
                 rows,
             );
             println!("counts: {}", len);

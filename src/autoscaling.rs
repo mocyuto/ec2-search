@@ -37,7 +37,7 @@ pub struct SearchInfoQueryOpt {
         short = "T",
         long,
         help = "Accepts a comma separated list of tags that are going to be presented as columns.
-        Tags are case-sensitive. You can also use multiple flag options like -T tag1 -T tag2..."
+        Tags are case-sensitive."
     )]
     tag_columns: Option<String>,
 }

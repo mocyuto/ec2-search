@@ -1,4 +1,4 @@
-use crate::utils::{print_table, Tag};
+use crate::utils::{get_values, print_table, split, Tag};
 use rusoto_autoscaling::{
     AutoScalingGroupNamesType, Autoscaling, AutoscalingClient, DescribeScalingActivitiesType,
     Instance,
@@ -52,9 +52,15 @@ pub async fn matcher(opt: AutoScalingGroupOpt) {
 async fn info(opt: SearchInfoQueryOpt) {
     let asg = get_auto_scaling_groups(&SearchQueryOpt { query: opt.query }).await;
     let len = asg.len();
+    let tag_column: Vec<String> = opt
+        .tag_columns
+        .map(|t| split(&*t, true))
+        .unwrap_or_default();
+
     let rows: Vec<Vec<String>> = asg
         .into_iter()
         .map(|t| {
+            let r = get_values(&t.tags, &tag_column);
             vec![
                 t.name,
                 t.instances.len().to_string(),
@@ -62,9 +68,22 @@ async fn info(opt: SearchInfoQueryOpt) {
                 t.min_capacity.to_string(),
                 t.max_capacity.to_string(),
             ]
+            .into_iter()
+            .chain(r)
+            .collect()
         })
         .collect();
-    print_table(vec!["Name", "Instances", "Desired", "Min", "Max"], rows);
+    let header: Vec<String> = vec![
+        "Name".to_string(),
+        "Instances".to_string(),
+        "Desired".to_string(),
+        "Min".to_string(),
+        "Max".to_string(),
+    ]
+    .into_iter()
+    .chain(tag_column)
+    .collect();
+    print_table(header, rows);
     println!("counts: {}", len);
 }
 async fn activities(opt: SearchQueryOpt) {
@@ -79,7 +98,15 @@ async fn activities(opt: SearchQueryOpt) {
         .into_iter()
         .map(|t| vec![t.status, t.description, t.start_at, t.end_at])
         .collect();
-    print_table(vec!["Status", "Desc", "StartTime", "EndTime"], rows);
+    print_table(
+        vec![
+            "Status".to_string(),
+            "Desc".to_string(),
+            "StartTime".to_string(),
+            "EndTime".to_string(),
+        ],
+        rows,
+    );
     println!("counts: {}", len);
 }
 
@@ -106,12 +133,12 @@ async fn instances(opt: SearchQueryOpt) {
         .collect();
     print_table(
         vec![
-            "ASG Name",
-            "ID",
-            "LifeCycle",
-            "InstanceType",
-            "AZ",
-            "Status",
+            "ASG Name".to_string(),
+            "ID".to_string(),
+            "LifeCycle".to_string(),
+            "InstanceType".to_string(),
+            "AZ".to_string(),
+            "Status".to_string(),
         ],
         rows,
     )

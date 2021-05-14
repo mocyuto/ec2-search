@@ -71,7 +71,7 @@ i-012345678  test-api1  running  t2.micro
 counts: 1
 
 # display wide when set -o option
-$ ec2s i info -q api
+$ ec2s i info -q api -o wide
 ID           Name       Status   Type     PrivateDNS                                      PrivateIP  AZ              LifeCycle
 i-012345678  test-api1  running  t2.micro ip-10-10-10-10.ap-northeast-1.compute.internal  10.0.0.1   ap-northeast-1  spot
 

@@ -41,7 +41,7 @@ pub struct SearchInfoQueryOpt {
         Tags are case-sensitive."
     )]
     tag_columns: Option<String>,
-    #[structopt(short, long = "show-all-tags", help = "Show all tags.")]
+    #[structopt(long = "show-all-tags", help = "Show all tags.")]
     show_all_tags: bool,
 }
 

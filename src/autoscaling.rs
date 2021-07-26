@@ -57,14 +57,15 @@ async fn info(opt: SearchInfoQueryOpt) {
     let len = asg.len();
 
     let tag_column: Vec<String> = if opt.show_all_tags {
-        let all_tags: Vec<String> = asg
-            .iter()
+        asg.iter()
             .map(|t| t.tags.iter().map(|ot| ot.key.to_string()).collect())
             .collect::<Vec<Vec<String>>>()
             .into_iter()
             .flatten()
-            .collect();
-        all_tags.into_iter().unique().collect()
+            .collect::<Vec<String>>()
+            .into_iter()
+            .unique()
+            .collect()
     } else {
         opt.tag_columns
             .map(|t| split(&*t, true))

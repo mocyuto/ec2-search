@@ -62,14 +62,16 @@ pub async fn matcher(opt: InstanceOpt) {
 async fn info(opt: SearchInfoQueryOpt) {
     let instances = get_instances(&SearchQueryOpt { query: opt.query }).await;
     let tag_column: Vec<String> = if opt.show_all_tags {
-        let all_tags: Vec<String> = instances
+        instances
             .iter()
             .map(|t| t.tags.iter().map(|ot| ot.key.to_string()).collect())
             .collect::<Vec<Vec<String>>>()
             .into_iter()
             .flatten()
-            .collect();
-        all_tags.into_iter().unique().collect()
+            .collect::<Vec<String>>()
+            .into_iter()
+            .unique()
+            .collect()
     } else {
         opt.tag_columns
             .map(|t| split(&*t, true))

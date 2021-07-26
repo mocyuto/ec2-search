@@ -235,7 +235,7 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
             break;
         }
     }
-    vector.into_iter().filter(|i| search(i, &opt)).collect()
+    vector.into_iter().filter(|i| search(i, opt)).collect()
 }
 async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, Option<String>) {
     let req = DescribeInstancesRequest {

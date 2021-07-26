@@ -228,10 +228,10 @@ fn extract_lb_name(lb_arn: &str) -> String {
     }
 
     if lb_arn.contains(&"loadbalancer/app/") {
-        let c = ALB.captures(&lb_arn).unwrap();
+        let c = ALB.captures(lb_arn).unwrap();
         return c[1].to_string();
     } else if lb_arn.contains(&"loadbalancer/net/") {
-        let c = NLB.captures(&lb_arn).unwrap();
+        let c = NLB.captures(lb_arn).unwrap();
         return c[1].to_string();
     }
     "".to_string()

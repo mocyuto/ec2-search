@@ -44,7 +44,7 @@ fn test_name_query() {
 pub fn err_handler<E>(error: RusotoError<E>) -> String {
     match error {
         RusotoError::Unknown(ref e) => {
-            let doc = Document::parse(&e.body_as_str()).unwrap();
+            let doc = Document::parse(e.body_as_str()).unwrap();
             let finder = |s: &str| {
                 doc.descendants()
                     .find(|n| n.has_tag_name(s))

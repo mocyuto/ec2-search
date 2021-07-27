@@ -1,4 +1,5 @@
 use crate::utils::{err_handler, get_values, print_table, split, Tag};
+use itertools::Itertools;
 use rusoto_core::Region;
 use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use std::process;
@@ -46,6 +47,8 @@ pub struct SearchInfoQueryOpt {
     Tags are case-sensitive."
     )]
     tag_columns: Option<String>,
+    #[structopt(long = "show-all-tags", help = "Show all tags.")]
+    show_all_tags: bool,
 }
 
 pub async fn matcher(opt: InstanceOpt) {
@@ -58,10 +61,18 @@ pub async fn matcher(opt: InstanceOpt) {
 }
 async fn info(opt: SearchInfoQueryOpt) {
     let instances = get_instances(&SearchQueryOpt { query: opt.query }).await;
-    let tag_column: Vec<String> = opt
-        .tag_columns
-        .map(|t| split(&*t, true))
-        .unwrap_or_default();
+    let tag_column: Vec<String> = if opt.show_all_tags {
+        instances
+            .iter()
+            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
+            .flatten()
+            .unique()
+            .collect()
+    } else {
+        opt.tag_columns
+            .map(|t| split(&*t, true))
+            .unwrap_or_default()
+    };
     match opt.output.as_deref() {
         Some("name") => {
             let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.name]).collect();
@@ -220,7 +231,7 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
             break;
         }
     }
-    vector.into_iter().filter(|i| search(i, &opt)).collect()
+    vector.into_iter().filter(|i| search(i, opt)).collect()
 }
 async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, Option<String>) {
     let req = DescribeInstancesRequest {

@@ -1,4 +1,5 @@
 use crate::utils::{get_values, print_table, split, Tag};
+use itertools::Itertools;
 use rusoto_autoscaling::{
     AutoScalingGroupNamesType, Autoscaling, AutoscalingClient, DescribeScalingActivitiesType,
     Instance,
@@ -40,6 +41,8 @@ pub struct SearchInfoQueryOpt {
         Tags are case-sensitive."
     )]
     tag_columns: Option<String>,
+    #[structopt(long = "show-all-tags", help = "Show all tags.")]
+    show_all_tags: bool,
 }
 
 pub async fn matcher(opt: AutoScalingGroupOpt) {
@@ -52,10 +55,18 @@ pub async fn matcher(opt: AutoScalingGroupOpt) {
 async fn info(opt: SearchInfoQueryOpt) {
     let asg = get_auto_scaling_groups(&SearchQueryOpt { query: opt.query }).await;
     let len = asg.len();
-    let tag_column: Vec<String> = opt
-        .tag_columns
-        .map(|t| split(&*t, true))
-        .unwrap_or_default();
+
+    let tag_column: Vec<String> = if opt.show_all_tags {
+        asg.iter()
+            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
+            .flatten()
+            .unique()
+            .collect()
+    } else {
+        opt.tag_columns
+            .map(|t| split(&*t, true))
+            .unwrap_or_default()
+    };
 
     let rows: Vec<Vec<String>> = asg
         .into_iter()

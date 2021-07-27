@@ -64,12 +64,8 @@ async fn info(opt: SearchInfoQueryOpt) {
     let tag_column: Vec<String> = if opt.show_all_tags {
         instances
             .iter()
-            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()).collect())
-            .collect::<Vec<Vec<String>>>()
-            .into_iter()
+            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
             .flatten()
-            .collect::<Vec<String>>()
-            .into_iter()
             .unique()
             .collect()
     } else {

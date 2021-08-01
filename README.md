@@ -79,6 +79,11 @@ i-012345678  test-api1  running  t2.micro ip-10-10-10-10.ap-northeast-1.compute.
 $ ec2s i info -q api -T Name,env
 ID           Name       Status   Type     Name      env
 i-012345678  test-api1  running  t2.micro test-api1 staging
+
+# display all tag columns when set --show-all-tags option
+$ ec2s i info -q api --show-all-tags
+ID           Name       Status   Type     Name      env
+i-012345678  test-api1  running  t2.micro test-api1 staging
 ```
 
 

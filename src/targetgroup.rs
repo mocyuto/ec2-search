@@ -1,10 +1,11 @@
-use crate::utils::{get_values,print_table,split, Tag};
+use crate::utils::{get_values, print_table, split, Tag};
+use itertools::Itertools;
 use regex::Regex;
 use rusoto_core::Region;
-use rusoto_elbv2::{DescribeTargetGroupsInput, DescribeTargetHealthInput, Elb, ElbClient, DescribeTagsInput};
+use rusoto_elbv2::{
+    DescribeTagsInput, DescribeTargetGroupsInput, DescribeTargetHealthInput, Elb, ElbClient,
+};
 use structopt::StructOpt;
-use itertools::Itertools;
-
 
 #[derive(Debug, StructOpt)]
 pub enum TargetGroupOpt {
@@ -28,9 +29,9 @@ pub struct SearchQueryOpt {
     )]
     query: Option<String>,
     #[structopt(
-    short = "T",
-    long,
-    help = "Accepts a comma separated list of tags that are going to be presented as columns.
+        short = "T",
+        long,
+        help = "Accepts a comma separated list of tags that are going to be presented as columns.
         Tags are case-sensitive."
     )]
     tag_columns: Option<String>,
@@ -72,9 +73,9 @@ async fn info(opt: SearchQueryOpt) {
                 t.target_type,
                 t.lb.map(|l| format!("{:?}", l)).unwrap_or_default(),
             ]
-                .into_iter()
-                .chain(r)
-                .collect()
+            .into_iter()
+            .chain(r)
+            .collect()
         })
         .collect();
     let header: Vec<String> = vec![
@@ -82,10 +83,10 @@ async fn info(opt: SearchQueryOpt) {
         "TargetType".to_string(),
         "LB".to_string(),
     ]
-        .into_iter()
-        .chain(tag_column)
-        .collect();
-    print_table(header,rows);
+    .into_iter()
+    .chain(tag_column)
+    .collect();
+    print_table(header, rows);
     println!("counts: {}", len);
 }
 
@@ -217,51 +218,52 @@ fn search_name(query: &Option<String>, tg_name: &str, lb_arn: &Option<Vec<String
     false
 }
 
-async fn set_tags(elb: &ElbClient, tgs: Vec<TargetGroup>) -> Vec<TargetGroup>{
-    let mut arns = tgs.iter()
-        .map(|t| t.arn.clone());
+async fn set_tags(elb: &ElbClient, tgs: Vec<TargetGroup>) -> Vec<TargetGroup> {
+    let mut arns = tgs.iter().map(|t| t.arn.clone());
     let mut offset = 0;
     let mut vector: Vec<TargetGroup> = vec![];
     loop {
         if offset > arns.len() {
-            break
+            break;
         }
         offset += 20;
-        let input = DescribeTagsInput{
+        let input = DescribeTagsInput {
             resource_arns: arns.by_ref().take(offset).collect(),
         };
-        match elb.describe_tags(input).await{
-            Ok(res) => {
-                res.tag_descriptions.into_iter()
-                    .for_each(|vt|{
-                        vt.into_iter()
-                            .for_each(|td| {
-                                let target_op = tgs.iter().find(|tg| td.resource_arn == Some(tg.arn.clone()));
-                                if target_op.is_some() {
-                                    let tags = td.tags.map(|ot| {
-                                        ot.into_iter()
-                                            .map(|t| Tag {
-                                                key: t.key,
-                                                value: t.value,
-                                            })
-                                            .collect()
-                                    }).unwrap_or_default();
-                                    let t = target_op.map(|t|{
-                                    TargetGroup {
-                                        name: t.name.clone(),
-                                        port: t.port.clone(),
-                                        arn: t.arn.clone(),
-                                        target_type: t.target_type.clone(),
-                                        lb: t.lb.clone(),
-                                        lb_arn: t.lb_arn.clone(),
-                                        tags,
-                                    }}).unwrap();
-                                    vector.push(t)
-                                }
+        match elb.describe_tags(input).await {
+            Ok(res) => res.tag_descriptions.into_iter().for_each(|vt| {
+                vt.into_iter().for_each(|td| {
+                    let target_op = tgs
+                        .iter()
+                        .find(|tg| td.resource_arn == Some(tg.arn.clone()));
+                    if target_op.is_some() {
+                        let tags = td
+                            .tags
+                            .map(|ot| {
+                                ot.into_iter()
+                                    .map(|t| Tag {
+                                        key: t.key,
+                                        value: t.value,
+                                    })
+                                    .collect()
                             })
-                    })
-            },
-            Err(err) => panic!("{}",err.to_string()),
+                            .unwrap_or_default();
+                        let t = target_op
+                            .map(|t| TargetGroup {
+                                name: t.name.clone(),
+                                port: t.port,
+                                arn: t.arn.clone(),
+                                target_type: t.target_type.clone(),
+                                lb: t.lb.clone(),
+                                lb_arn: t.lb_arn.clone(),
+                                tags,
+                            })
+                            .unwrap();
+                        vector.push(t)
+                    }
+                })
+            }),
+            Err(err) => panic!("{}", err.to_string()),
         }
     }
     vector

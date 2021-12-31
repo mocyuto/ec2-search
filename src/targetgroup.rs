@@ -54,8 +54,7 @@ async fn info(opt: SearchQueryOpt) {
 
     let tag_column: Vec<String> = if opt.show_all_tags {
         tgs.iter()
-            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
-            .flatten()
+            .flat_map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
             .unique()
             .collect()
     } else {
@@ -363,8 +362,7 @@ async fn get_target_health(arn: String) -> Vec<TargetHealth> {
                 status: h
                     .target_health
                     .as_ref()
-                    .map(|t| t.state.as_ref().map(|s| s.to_string()))
-                    .flatten()
+                    .and_then(|t| t.state.as_ref().map(|s| s.to_string()))
                     .unwrap_or_default(),
             })
             .collect(),

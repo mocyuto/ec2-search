@@ -46,8 +46,7 @@ pub fn err_handler<E>(error: RusotoError<E>) -> String {
             let finder = |s: &str| {
                 doc.descendants()
                     .find(|n| n.has_tag_name(s))
-                    .map(|n| n.text())
-                    .flatten()
+                    .and_then(|n| n.text())
                     .unwrap_or("unknown")
             };
             format!(

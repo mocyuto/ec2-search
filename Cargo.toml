@@ -16,14 +16,15 @@ path = "src/main.rs"
 
 
 [dependencies]
-rusoto_core = "0.45.0"
-rusoto_ec2 = "0.45.0"
-rusoto_elbv2= "0.45.0"
-rusoto_autoscaling = "0.45.0"
-tokio = { version = "0.2", features = ["macros"] }
+aws-config = "0.3.0"
+rusoto_core = "0.47.0"
+rusoto_ec2 = "0.47.0"
+rusoto_elbv2= "0.47.0"
+rusoto_autoscaling = "0.47.0"
+tokio = { version = "1", features = ["full"] }
 structopt = "0.3"
 roxmltree = "0.13.0"
-cli-table = "0.3"
+cli-table = "0.4"
 regex = "1"
 lazy_static = "1.4"
 itertools = "0.10.1"

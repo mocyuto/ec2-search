@@ -301,6 +301,7 @@ async fn get_activities(asg_name: String) -> Vec<Activity> {
             auto_scaling_group_name: Some(asg_name),
             max_records: None,
             next_token: None,
+            include_deleted_groups: None,
         })
         .await
     {

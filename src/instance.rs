@@ -1,7 +1,8 @@
-use crate::utils::{err_handler, get_values, print_table, split, Tag};
+use crate::awsutils::config;
+use crate::utils::{get_values, print_table, split, Tag};
+use aws_sdk_ec2::model::Tag as ec2_tag;
+use aws_sdk_ec2::Client;
 use itertools::Itertools;
-use rusoto_core::Region;
-use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 use std::process;
 use structopt::StructOpt;
 
@@ -219,11 +220,11 @@ struct Instance {
 }
 
 async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
-    let ec2 = Ec2Client::new(Region::ApNortheast1);
+    let client = Client::new(&config().await);
     let mut m: Option<String> = None;
     let mut vector: Vec<Instance> = vec![];
     loop {
-        let (mut v, mark) = instances(&ec2, &m).await;
+        let (mut v, mark) = instances(&client, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {
@@ -232,15 +233,13 @@ async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
     }
     vector.into_iter().filter(|i| search(i, opt)).collect()
 }
-async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, Option<String>) {
-    let req = DescribeInstancesRequest {
-        filters: None,
-        instance_ids: None,
-        dry_run: None,
-        max_results: None,
-        next_token: marker.clone(),
-    };
-    match ec2.describe_instances(req).await {
+async fn instances(cli: &Client, marker: &Option<String>) -> (Vec<Instance>, Option<String>) {
+    match cli
+        .describe_instances()
+        .set_next_token(marker.clone())
+        .send()
+        .await
+    {
         Ok(res) => {
             let instances = res
                 .reservations
@@ -251,13 +250,22 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                     .map(|i| Instance {
                         name: name(&i.tags),
                         id: i.instance_id.unwrap_or_default(),
-                        status: i.state.and_then(|i| i.name).unwrap_or_default(),
-                        lifecycle: i.instance_lifecycle.unwrap_or_else(|| "normal".to_string()),
+                        status: i
+                            .state
+                            .and_then(|i| i.name.map(|n| n.as_str().to_string()))
+                            .unwrap_or_default(),
+                        lifecycle: i
+                            .instance_lifecycle
+                            .map(|i| i.as_str().to_string())
+                            .unwrap_or_else(|| "normal".to_string()),
                         az: i
                             .placement
                             .and_then(|p| p.availability_zone)
                             .unwrap_or_default(),
-                        instance_type: i.instance_type.unwrap_or_default(),
+                        instance_type: i
+                            .instance_type
+                            .map(|i| i.as_str().to_string())
+                            .unwrap_or_default(),
                         private_ip: i.private_ip_address.unwrap_or_default(),
                         public_ip: i.public_ip_address,
                         private_dns: i.private_dns_name.unwrap_or_default(),
@@ -278,7 +286,7 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                 res.next_token,
             )
         }
-        Err(err) => panic!("{}", err_handler(err)),
+        Err(err) => panic!("{}", err.to_string()),
     }
 }
 
@@ -371,7 +379,7 @@ fn test_search() {
 }
 
 // extract Tag Name from instance
-fn name(i: &Option<Vec<rusoto_ec2::Tag>>) -> String {
+fn name(i: &Option<Vec<ec2_tag>>) -> String {
     i.as_ref()
         .and_then(|v| {
             v.iter()
@@ -382,9 +390,10 @@ fn name(i: &Option<Vec<rusoto_ec2::Tag>>) -> String {
 }
 #[test]
 fn test_get_name_from_tag() {
-    let t: Option<Vec<rusoto_ec2::Tag>> = Some(vec![rusoto_ec2::Tag {
-        key: Some("Name".to_string()),
-        value: Some("api".to_string()),
-    }]);
+    let tag = aws_sdk_ec2::model::tag::Builder::default()
+        .set_key(Some("Name".to_string()))
+        .set_value(Some("api".to_string()))
+        .build();
+    let t: Option<Vec<ec2_tag>> = Some(vec![tag]);
     assert_eq!(name(&t), "api".to_string());
 }

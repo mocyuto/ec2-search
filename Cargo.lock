@@ -120,6 +120,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-ec2"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18700b45c500bbff373e6f9b86a458db85823d42fc99b5c36067b28d64ed12ba"
+dependencies = [
+ "aws-endpoint",
+ "aws-http",
+ "aws-sig-auth",
+ "aws-smithy-async",
+ "aws-smithy-client",
+ "aws-smithy-http",
+ "aws-smithy-http-tower",
+ "aws-smithy-query",
+ "aws-smithy-types",
+ "aws-smithy-xml",
+ "aws-types",
+ "bytes",
+ "fastrand",
+ "http",
+ "tower",
+]
+
+[[package]]
 name = "aws-sdk-sts"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -528,6 +551,7 @@ version = "0.13.0"
 dependencies = [
  "aws-config",
  "aws-sdk-autoscaling",
+ "aws-sdk-ec2",
  "aws-smithy-types",
  "aws-types",
  "cli-table",
@@ -535,9 +559,7 @@ dependencies = [
  "lazy_static",
  "regex",
  "roxmltree",
- "rusoto_autoscaling",
  "rusoto_core",
- "rusoto_ec2",
  "rusoto_elbv2",
  "structopt",
  "tokio",
@@ -1340,20 +1362,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusoto_autoscaling"
-version = "0.47.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8085f5d7b3909defaf47ca0764e72950caa7d242cc77f0e30d2ab587a7bdb64c"
-dependencies = [
- "async-trait",
- "bytes",
- "futures",
- "rusoto_core",
- "serde_urlencoded",
- "xml-rs",
-]
-
-[[package]]
 name = "rusoto_core"
 version = "0.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1394,20 +1402,6 @@ dependencies = [
  "shlex",
  "tokio",
  "zeroize",
-]
-
-[[package]]
-name = "rusoto_ec2"
-version = "0.47.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92315363c2f2acda29029ce0ce0e58e1c32caf10c9719068a1ec102add3d4878"
-dependencies = [
- "async-trait",
- "bytes",
- "futures",
- "rusoto_core",
- "serde_urlencoded",
- "xml-rs",
 ]
 
 [[package]]

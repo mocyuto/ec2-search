@@ -390,9 +390,10 @@ fn name(i: &Option<Vec<ec2_tag>>) -> String {
 }
 #[test]
 fn test_get_name_from_tag() {
-    let t: Option<Vec<ec2_tag>> = Some(vec![ec2_tag {
-        key: Some("Name".to_string()),
-        value: Some("api".to_string()),
-    }]);
+    let tag = aws_sdk_ec2::model::tag::Builder::default()
+        .set_key(Some("Name".to_string()))
+        .set_value(Some("api".to_string()))
+        .build();
+    let t: Option<Vec<ec2_tag>> = Some(vec![tag]);
     assert_eq!(name(&t), "api".to_string());
 }

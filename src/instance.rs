@@ -257,7 +257,7 @@ async fn instances(cli: &Client, marker: &Option<String>) -> (Vec<Instance>, Opt
                         lifecycle: i
                             .instance_lifecycle
                             .map(|i| i.as_str().to_string())
-                            .unwrap_or("normal".to_string()),
+                            .unwrap_or_else(|| "normal".to_string()),
                         az: i
                             .placement
                             .and_then(|p| p.availability_zone)

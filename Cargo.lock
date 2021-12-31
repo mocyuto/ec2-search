@@ -98,6 +98,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-autoscaling"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9e8717b6275eb1e112fb94657c608d4fb719ce31df04cf151b551c246fafaeb"
+dependencies = [
+ "aws-endpoint",
+ "aws-http",
+ "aws-sig-auth",
+ "aws-smithy-async",
+ "aws-smithy-client",
+ "aws-smithy-http",
+ "aws-smithy-http-tower",
+ "aws-smithy-query",
+ "aws-smithy-types",
+ "aws-smithy-xml",
+ "aws-types",
+ "bytes",
+ "http",
+ "tower",
+]
+
+[[package]]
 name = "aws-sdk-sts"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -505,6 +527,8 @@ name = "ec2-search"
 version = "0.13.0"
 dependencies = [
  "aws-config",
+ "aws-sdk-autoscaling",
+ "aws-smithy-types",
  "cli-table",
  "itertools",
  "lazy_static",

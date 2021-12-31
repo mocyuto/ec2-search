@@ -1,10 +1,9 @@
 use crate::utils::{get_values, print_table, split, Tag};
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_autoscaling::model::Instance;
+use aws_sdk_autoscaling::{Client, DateTime, Region};
+use aws_smithy_types::date_time::Format;
 use itertools::Itertools;
-use rusoto_autoscaling::{
-    AutoScalingGroupNamesType, Autoscaling, AutoscalingClient, DescribeScalingActivitiesType,
-    Instance,
-};
-use rusoto_core::Region;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -53,7 +52,7 @@ pub async fn matcher(opt: AutoScalingGroupOpt) {
     }
 }
 async fn info(opt: SearchInfoQueryOpt) {
-    let asg = get_auto_scaling_groups(&SearchQueryOpt { query: opt.query }).await;
+    let asg = get_autoscaling_groups(&SearchQueryOpt { query: opt.query }).await;
     let len = asg.len();
 
     let tag_column: Vec<String> = if opt.show_all_tags {
@@ -74,9 +73,11 @@ async fn info(opt: SearchInfoQueryOpt) {
             vec![
                 t.name,
                 t.instances.len().to_string(),
-                t.desired_capacity.to_string(),
-                t.min_capacity.to_string(),
-                t.max_capacity.to_string(),
+                t.desired_capacity
+                    .map(|i| i.to_string())
+                    .unwrap_or_default(),
+                t.min_capacity.map(|i| i.to_string()).unwrap_or_default(),
+                t.max_capacity.map(|i| i.to_string()).unwrap_or_default(),
             ]
             .into_iter()
             .chain(r)
@@ -97,7 +98,7 @@ async fn info(opt: SearchInfoQueryOpt) {
     println!("counts: {}", len);
 }
 async fn activities(opt: SearchQueryOpt) {
-    let asg = get_auto_scaling_groups(&opt).await;
+    let asg = get_autoscaling_groups(&opt).await;
     if asg.len() != 1 {
         println!("need to be narrowed to 1");
         return;
@@ -121,7 +122,7 @@ async fn activities(opt: SearchQueryOpt) {
 }
 
 async fn instances(opt: SearchQueryOpt) {
-    let asg = get_auto_scaling_groups(&opt).await;
+    let asg = get_autoscaling_groups(&opt).await;
     let rows: Vec<Vec<String>> = asg
         .into_iter()
         .flat_map(|a| {
@@ -131,11 +132,13 @@ async fn instances(opt: SearchQueryOpt) {
                 .map(|i| {
                     vec![
                         name.clone(),
-                        i.instance_id,
-                        i.lifecycle_state,
+                        i.instance_id.unwrap_or_default(),
+                        i.lifecycle_state
+                            .map(|s| s.as_str().to_string())
+                            .unwrap_or_default(),
                         i.instance_type.unwrap_or_default(),
-                        i.availability_zone,
-                        i.health_status,
+                        i.availability_zone.unwrap_or_default(),
+                        i.health_status.unwrap_or_default(),
                     ]
                 })
                 .collect::<Vec<_>>()
@@ -157,18 +160,26 @@ async fn instances(opt: SearchQueryOpt) {
 struct AutoScalingGroup {
     name: String,
     instances: Vec<Instance>,
-    min_capacity: i64,
-    max_capacity: i64,
-    desired_capacity: i64,
+    min_capacity: Option<i32>,
+    max_capacity: Option<i32>,
+    desired_capacity: Option<i32>,
     tags: Vec<Tag>,
 }
 
-async fn get_auto_scaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
-    let elb = AutoscalingClient::new(Region::ApNortheast1);
+async fn client() -> Client {
+    let region_provider = RegionProviderChain::first_try(Region::new("ap-northeast-1"))
+        .or_default_provider()
+        .or_else(Region::new("us-west-2"));
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    Client::new(&shared_config)
+}
+
+async fn get_autoscaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
+    let client = client().await;
     let mut m: Option<String> = None;
     let mut vector: Vec<AutoScalingGroup> = vec![];
     loop {
-        let (mut v, mark) = auto_scaling_group(&elb, &m).await;
+        let (mut v, mark) = autoscaling_groups(&client, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {
@@ -181,24 +192,22 @@ async fn get_auto_scaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> 
         .collect()
 }
 
-async fn auto_scaling_group(
-    cli: &AutoscalingClient,
+async fn autoscaling_groups(
+    client: &Client,
     marker: &Option<String>,
 ) -> (Vec<AutoScalingGroup>, Option<String>) {
-    match cli
-        .describe_auto_scaling_groups(AutoScalingGroupNamesType {
-            auto_scaling_group_names: None,
-            max_records: None,
-            next_token: marker.clone(),
-        })
-        .await
-    {
+    let resp = client
+        .describe_auto_scaling_groups()
+        .set_next_token(marker.clone())
+        .send();
+    match resp.await {
         Ok(res) => {
-            let asg = res.auto_scaling_groups;
+            let groups = res.auto_scaling_groups.unwrap_or_default();
             (
-                asg.into_iter()
+                groups
+                    .into_iter()
                     .map(|t| AutoScalingGroup {
-                        name: t.auto_scaling_group_name,
+                        name: t.auto_scaling_group_name.unwrap_or_default(),
                         instances: t.instances.unwrap_or_default(),
                         min_capacity: t.min_size,
                         max_capacity: t.max_size,
@@ -293,27 +302,34 @@ struct Activity {
     end_at: String,
 }
 async fn get_activities(asg_name: String) -> Vec<Activity> {
-    let cli = AutoscalingClient::new(Region::ApNortheast1);
+    let cli = client().await;
     match cli
-        .describe_scaling_activities(DescribeScalingActivitiesType {
-            activity_ids: None,
-            auto_scaling_group_name: Some(asg_name),
-            max_records: None,
-            next_token: None,
-            include_deleted_groups: None,
-        })
+        .describe_scaling_activities()
+        .auto_scaling_group_name(asg_name)
+        .send()
         .await
     {
         Ok(res) => res
             .activities
+            .unwrap_or_default()
             .into_iter()
             .map(|a| Activity {
-                status: a.status_code,
+                status: a
+                    .status_code
+                    .map(|c| c.as_str().to_string())
+                    .unwrap_or_default(),
                 description: a.description.unwrap_or_default(),
-                start_at: a.start_time,
-                end_at: a.end_time.unwrap_or_default(),
+                start_at: a.start_time.map(|t| datetime_str(t)).unwrap_or_default(),
+                end_at: a.end_time.map(|t| datetime_str(t)).unwrap_or_default(),
             })
             .collect(),
+        Err(err) => panic!("{}", err.to_string()),
+    }
+}
+
+fn datetime_str(dt: DateTime) -> String {
+    match dt.fmt(Format::HttpDate) {
+        Ok(r) => r,
         Err(err) => panic!("{}", err.to_string()),
     }
 }

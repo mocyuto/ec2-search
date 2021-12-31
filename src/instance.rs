@@ -64,8 +64,7 @@ async fn info(opt: SearchInfoQueryOpt) {
     let tag_column: Vec<String> = if opt.show_all_tags {
         instances
             .iter()
-            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
-            .flatten()
+            .flat_map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
             .unique()
             .collect()
     } else {
@@ -252,12 +251,11 @@ async fn instances(ec2: &Ec2Client, marker: &Option<String>) -> (Vec<Instance>, 
                     .map(|i| Instance {
                         name: name(&i.tags),
                         id: i.instance_id.unwrap_or_default(),
-                        status: i.state.map(|i| i.name).flatten().unwrap_or_default(),
+                        status: i.state.and_then(|i| i.name).unwrap_or_default(),
                         lifecycle: i.instance_lifecycle.unwrap_or_else(|| "normal".to_string()),
                         az: i
                             .placement
-                            .map(|p| p.availability_zone)
-                            .flatten()
+                            .and_then(|p| p.availability_zone)
                             .unwrap_or_default(),
                         instance_type: i.instance_type.unwrap_or_default(),
                         private_ip: i.private_ip_address.unwrap_or_default(),
@@ -375,12 +373,11 @@ fn test_search() {
 // extract Tag Name from instance
 fn name(i: &Option<Vec<rusoto_ec2::Tag>>) -> String {
     i.as_ref()
-        .map(|v| {
+        .and_then(|v| {
             v.iter()
                 .find(|t| t.key == Some("Name".to_string()))
                 .map(|t| t.value.clone().unwrap_or_default())
         })
-        .flatten()
         .unwrap_or_default()
 }
 #[test]

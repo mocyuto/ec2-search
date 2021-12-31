@@ -1,7 +1,5 @@
-use cli_table::{
-    format::{Border, CellFormat, Separator, TableFormat},
-    Cell, Row, Table,
-};
+use cli_table::format::{Border, Separator};
+use cli_table::{print_stdout, Cell, CellStruct, Style, Table, TableStruct};
 use roxmltree::Document;
 use rusoto_core::RusotoError;
 
@@ -48,8 +46,7 @@ pub fn err_handler<E>(error: RusotoError<E>) -> String {
             let finder = |s: &str| {
                 doc.descendants()
                     .find(|n| n.has_tag_name(s))
-                    .map(|n| n.text())
-                    .flatten()
+                    .and_then(|n| n.text())
                     .unwrap_or("unknown")
             };
             format!(
@@ -63,29 +60,21 @@ pub fn err_handler<E>(error: RusotoError<E>) -> String {
 }
 
 pub fn print_table(header: Vec<String>, rows: Vec<Vec<String>>) {
-    let bold = CellFormat::builder().bold(true).build();
-    let h: Vec<Row> = vec![Row::new(
-        header.iter().map(|h| Cell::new(h, bold)).collect(),
-    )];
-    let rows: Vec<Row> = rows
+    let h: Vec<CellStruct> = header.iter().map(|h| h.cell().bold(true)).collect();
+    let rows: Vec<Vec<CellStruct>> = rows
         .iter()
-        .map(|r| Row::new(r.iter().map(|c| Cell::new(c, Default::default())).collect()))
+        .map(|r| r.iter().map(|c| c.cell()).collect())
         .collect();
-    let r: Vec<Row> = if header.is_empty() {
-        rows
-    } else {
-        h.into_iter().chain(rows).collect()
-    };
 
-    let border = Border::builder().build();
-    let separator = Separator::builder().build();
-    let format = TableFormat::new(border, separator);
-
-    let _ = match Table::new(r, format) {
-        Ok(t) => t,
+    let t: TableStruct = rows
+        .table()
+        .title(h)
+        .border(Border::builder().build())
+        .separator(Separator::builder().build());
+    match print_stdout(t) {
+        Ok(r) => r,
         Err(e) => panic!("{:?}", e),
-    }
-    .print_stdout();
+    };
 }
 
 pub struct Tag {

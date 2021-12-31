@@ -58,8 +58,7 @@ async fn info(opt: SearchInfoQueryOpt) {
 
     let tag_column: Vec<String> = if opt.show_all_tags {
         asg.iter()
-            .map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
-            .flatten()
+            .flat_map(|t| t.tags.iter().map(|ot| ot.key.to_string()))
             .unique()
             .collect()
     } else {
@@ -301,6 +300,7 @@ async fn get_activities(asg_name: String) -> Vec<Activity> {
             auto_scaling_group_name: Some(asg_name),
             max_records: None,
             next_token: None,
+            include_deleted_groups: None,
         })
         .await
     {

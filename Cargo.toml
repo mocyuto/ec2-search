@@ -18,7 +18,7 @@ path = "src/main.rs"
 [dependencies]
 aws-config = "0.3"
 aws-sdk-autoscaling = "0.3"
-aws-smithy-types = "0.33.1"
+aws-smithy-types = "0.33"
 rusoto_core = "0.47.0"
 rusoto_ec2 = "0.47.0"
 rusoto_elbv2= "0.47.0"

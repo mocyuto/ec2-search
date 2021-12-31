@@ -319,8 +319,8 @@ async fn get_activities(asg_name: String) -> Vec<Activity> {
                     .map(|c| c.as_str().to_string())
                     .unwrap_or_default(),
                 description: a.description.unwrap_or_default(),
-                start_at: a.start_time.map(|t| datetime_str(t)).unwrap_or_default(),
-                end_at: a.end_time.map(|t| datetime_str(t)).unwrap_or_default(),
+                start_at: a.start_time.map(datetime_str).unwrap_or_default(),
+                end_at: a.end_time.map(datetime_str).unwrap_or_default(),
             })
             .collect(),
         Err(err) => panic!("{}", err.to_string()),

@@ -1,8 +1,7 @@
+use crate::awsutils::{config, datetime_str};
 use crate::utils::{get_values, print_table, split, Tag};
-use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_autoscaling::model::Instance;
-use aws_sdk_autoscaling::{Client, DateTime, Region};
-use aws_smithy_types::date_time::Format;
+use aws_sdk_autoscaling::Client;
 use itertools::Itertools;
 use structopt::StructOpt;
 
@@ -166,16 +165,8 @@ struct AutoScalingGroup {
     tags: Vec<Tag>,
 }
 
-async fn client() -> Client {
-    let region_provider = RegionProviderChain::first_try(Region::new("ap-northeast-1"))
-        .or_default_provider()
-        .or_else(Region::new("us-west-2"));
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    Client::new(&shared_config)
-}
-
 async fn get_autoscaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
-    let client = client().await;
+    let client = Client::new(&config().await);
     let mut m: Option<String> = None;
     let mut vector: Vec<AutoScalingGroup> = vec![];
     loop {
@@ -302,7 +293,7 @@ struct Activity {
     end_at: String,
 }
 async fn get_activities(asg_name: String) -> Vec<Activity> {
-    let cli = client().await;
+    let cli = Client::new(&config().await);
     match cli
         .describe_scaling_activities()
         .auto_scaling_group_name(asg_name)
@@ -323,13 +314,6 @@ async fn get_activities(asg_name: String) -> Vec<Activity> {
                 end_at: a.end_time.map(datetime_str).unwrap_or_default(),
             })
             .collect(),
-        Err(err) => panic!("{}", err.to_string()),
-    }
-}
-
-fn datetime_str(dt: DateTime) -> String {
-    match dt.fmt(Format::HttpDate) {
-        Ok(r) => r,
         Err(err) => panic!("{}", err.to_string()),
     }
 }

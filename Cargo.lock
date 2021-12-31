@@ -529,6 +529,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-autoscaling",
  "aws-smithy-types",
+ "aws-types",
  "cli-table",
  "itertools",
  "lazy_static",

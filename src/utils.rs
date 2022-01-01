@@ -1,7 +1,5 @@
 use cli_table::format::{Border, Separator};
 use cli_table::{print_stdout, Cell, CellStruct, Style, Table, TableStruct};
-use roxmltree::Document;
-use rusoto_core::RusotoError;
 
 pub fn name_query(query: &Option<String>, exact_q: &Option<String>) -> Option<Vec<String>> {
     let input = query.as_ref().map(|q| split(q, false));
@@ -37,26 +35,6 @@ fn test_name_query() {
         name_query(&None, &Some("api".to_string())),
         Some(vec!["api".to_string()])
     );
-}
-
-pub fn err_handler<E>(error: RusotoError<E>) -> String {
-    match error {
-        RusotoError::Unknown(ref e) => {
-            let doc = Document::parse(e.body_as_str()).unwrap();
-            let finder = |s: &str| {
-                doc.descendants()
-                    .find(|n| n.has_tag_name(s))
-                    .and_then(|n| n.text())
-                    .unwrap_or("unknown")
-            };
-            format!(
-                "[ERROR] code:{}, message: {}",
-                finder("Code"),
-                finder("Message")
-            )
-        }
-        _ => "[ERROR] unknown error".to_string(),
-    }
 }
 
 pub fn print_table(header: Vec<String>, rows: Vec<Vec<String>>) {

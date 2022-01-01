@@ -216,18 +216,15 @@ fn search_name(query: &Option<String>, tg_name: &str, lb_arn: &Option<Vec<String
 
 async fn set_tags(client: &Client, tgs: Vec<TargetGroup>) -> Vec<TargetGroup> {
     const WINDOW: usize = 20;
-    let arns: Vec<String> = tgs.iter().map(|t| t.arn.clone()).collect();
-    let tg_len = arns.len();
+    let mut arns = tgs.iter().map(|t| t.arn.clone());
     let mut offset = 0;
-    let mut skip = 0;
     let mut vector: Vec<TargetGroup> = vec![];
     loop {
-        if offset > tg_len {
+        if offset > tgs.len() {
             break;
         }
         offset += WINDOW;
-        let resource_arns: Vec<String> = arns.iter().skip(skip).take(offset).cloned().collect();
-        skip += WINDOW;
+        let resource_arns: Vec<String> = arns.by_ref().take(offset).collect();
         match client
             .describe_tags()
             .set_resource_arns(Some(resource_arns))

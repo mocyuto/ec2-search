@@ -1,10 +1,8 @@
+use crate::awsutils::config;
 use crate::utils::{get_values, print_table, split, Tag};
+use aws_sdk_elasticloadbalancingv2::Client;
 use itertools::Itertools;
 use regex::Regex;
-use rusoto_core::Region;
-use rusoto_elbv2::{
-    DescribeTagsInput, DescribeTargetGroupsInput, DescribeTargetHealthInput, Elb, ElbClient,
-};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -137,7 +135,7 @@ async fn target_health(opt: SearchQueryOpt) {
 
 struct TargetGroup {
     name: String,
-    port: i64,
+    port: i32,
     arn: String,
     target_type: String,
     lb: Option<Vec<String>>,
@@ -145,11 +143,11 @@ struct TargetGroup {
     tags: Vec<Tag>,
 }
 async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
-    let elb = ElbClient::new(Region::ApNortheast1);
+    let client = Client::new(&config().await);
     let mut m: Option<String> = None;
     let mut vector: Vec<TargetGroup> = vec![];
     loop {
-        let (mut v, mark) = target_group(&elb, &m).await;
+        let (mut v, mark) = target_group(&client, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {
@@ -160,21 +158,17 @@ async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
         .into_iter()
         .filter(|t| search_name(&opt.query, &t.name, &t.lb_arn))
         .collect();
-    set_tags(&elb, tgs).await
+    set_tags(&client, tgs).await
 }
 
 async fn target_group(
-    elb: &ElbClient,
+    client: &Client,
     marker: &Option<String>,
 ) -> (Vec<TargetGroup>, Option<String>) {
-    match elb
-        .describe_target_groups(DescribeTargetGroupsInput {
-            load_balancer_arn: None,
-            marker: marker.clone(),
-            names: None,
-            page_size: None,
-            target_group_arns: None,
-        })
+    match client
+        .describe_target_groups()
+        .set_marker(marker.clone())
+        .send()
         .await
     {
         Ok(res) => {
@@ -185,7 +179,10 @@ async fn target_group(
                         name: t.target_group_name.unwrap_or_default(),
                         port: t.port.unwrap_or_default(),
                         arn: t.target_group_arn.unwrap_or_default(),
-                        target_type: t.target_type.unwrap_or_default(),
+                        target_type: t
+                            .target_type
+                            .map(|t| t.as_str().to_string())
+                            .unwrap_or_default(),
                         lb: t
                             .load_balancer_arns
                             .as_ref()
@@ -217,19 +214,23 @@ fn search_name(query: &Option<String>, tg_name: &str, lb_arn: &Option<Vec<String
     false
 }
 
-async fn set_tags(elb: &ElbClient, tgs: Vec<TargetGroup>) -> Vec<TargetGroup> {
+async fn set_tags(client: &Client, tgs: Vec<TargetGroup>) -> Vec<TargetGroup> {
+    const WINDOW: usize = 20;
     let mut arns = tgs.iter().map(|t| t.arn.clone());
     let mut offset = 0;
     let mut vector: Vec<TargetGroup> = vec![];
     loop {
-        if offset > arns.len() {
+        if offset > tgs.len() {
             break;
         }
-        offset += 20;
-        let input = DescribeTagsInput {
-            resource_arns: arns.by_ref().take(offset).collect(),
-        };
-        match elb.describe_tags(input).await {
+        offset += WINDOW;
+        let resource_arns: Vec<String> = arns.by_ref().take(offset).collect();
+        match client
+            .describe_tags()
+            .set_resource_arns(Some(resource_arns))
+            .send()
+            .await
+        {
             Ok(res) => res.tag_descriptions.into_iter().for_each(|vt| {
                 vt.into_iter().for_each(|td| {
                     let target_op = tgs
@@ -241,7 +242,7 @@ async fn set_tags(elb: &ElbClient, tgs: Vec<TargetGroup>) -> Vec<TargetGroup> {
                             .map(|ot| {
                                 ot.into_iter()
                                     .map(|t| Tag {
-                                        key: t.key,
+                                        key: t.key.unwrap_or_default(),
                                         value: t.value,
                                     })
                                     .collect()
@@ -335,34 +336,23 @@ struct TargetHealth {
     status: String,
 }
 async fn get_target_health(arn: String) -> Vec<TargetHealth> {
-    let elb = ElbClient::new(Region::ApNortheast1);
-
-    match elb
-        .describe_target_health(DescribeTargetHealthInput {
-            target_group_arn: arn,
-            targets: None,
-        })
+    let client = Client::new(&config().await);
+    match client
+        .describe_target_health()
+        .target_group_arn(arn)
+        .send()
         .await
     {
         Ok(res) => res
             .target_health_descriptions
             .unwrap_or_default()
-            .iter()
+            .into_iter()
             .map(|h| TargetHealth {
-                id: h
-                    .target
-                    .as_ref()
-                    .map(|t| t.id.to_string())
-                    .unwrap_or_default(),
-                port: h
-                    .health_check_port
-                    .as_ref()
-                    .map(|p| p.to_string())
-                    .unwrap_or_default(),
+                id: h.target.and_then(|t| t.id).unwrap_or_default(),
+                port: h.health_check_port.unwrap_or_default(),
                 status: h
                     .target_health
-                    .as_ref()
-                    .and_then(|t| t.state.as_ref().map(|s| s.to_string()))
+                    .and_then(|t| t.state.map(|s| s.as_str().to_string()))
                     .unwrap_or_default(),
             })
             .collect(),

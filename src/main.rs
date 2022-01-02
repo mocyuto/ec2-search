@@ -11,7 +11,11 @@ struct Cli {
     #[structopt(subcommand)]
     cmd: Command,
 
-    #[structopt(global = true, long)]
+    #[structopt(
+        global = true,
+        long,
+        help = "The region to use. Overrides config/env settings."
+    )]
     region: Option<String>,
 }
 

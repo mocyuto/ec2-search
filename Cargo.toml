@@ -1,8 +1,8 @@
 [package]
 name = "ec2-search"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Yuto Suzuki <yuutoo.advance@gmail.com>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/mocyuto/ec2-search"
 categories = ["command-line-utilities"]
 keywords = ["ec2","aws","cli"]

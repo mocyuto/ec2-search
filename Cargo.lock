@@ -481,7 +481,7 @@ dependencies = [
 
 [[package]]
 name = "ec2-search"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "aws-config",
  "aws-sdk-autoscaling",

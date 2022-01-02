@@ -51,7 +51,9 @@ $ ec2s help
 ec2-search needs aws credentials, so you need to set credentials.
 You can use Environment value or `"~/.aws/credentials"`.
 
-For more information, see [AWS Credentials](https://github.com/rusoto/rusoto/blob/master/AWS-CREDENTIALS.md)
+#### profile
+
+if set and not empty the value of the environment variable `AWS_PROFILE` otherwise `default`
 
 ### Instance
 

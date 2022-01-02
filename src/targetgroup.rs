@@ -147,7 +147,7 @@ async fn get_target_groups(cli: &Client, opt: &SearchQueryOpt) -> Vec<TargetGrou
     let mut m: Option<String> = None;
     let mut vector: Vec<TargetGroup> = vec![];
     loop {
-        let (mut v, mark) = target_group(&cli, &m).await;
+        let (mut v, mark) = target_group(cli, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {
@@ -158,7 +158,7 @@ async fn get_target_groups(cli: &Client, opt: &SearchQueryOpt) -> Vec<TargetGrou
         .into_iter()
         .filter(|t| search_name(&opt.query, &t.name, &t.lb_arn))
         .collect();
-    set_tags(&cli, tgs).await
+    set_tags(cli, tgs).await
 }
 
 async fn target_group(

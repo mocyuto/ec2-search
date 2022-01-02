@@ -170,7 +170,7 @@ async fn get_autoscaling_groups(cli: &Client, opt: &SearchQueryOpt) -> Vec<AutoS
     let mut m: Option<String> = None;
     let mut vector: Vec<AutoScalingGroup> = vec![];
     loop {
-        let (mut v, mark) = autoscaling_groups(&cli, &m).await;
+        let (mut v, mark) = autoscaling_groups(cli, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {

@@ -11,7 +11,13 @@ pub fn datetime_str(dt: DateTime) -> String {
     }
 }
 
-pub async fn config() -> Config {
-    let region_provider = RegionProviderChain::default_provider().or_else(Region::new("us-west-2"));
+pub struct GlobalOpt {
+    pub region: Option<String>,
+}
+
+pub async fn config(opt: GlobalOpt) -> Config {
+    let region_provider = RegionProviderChain::first_try(opt.region.map(Region::new))
+        .or_default_provider()
+        .or_else(Region::new("us-west-2"));
     aws_config::from_env().region(region_provider).load().await
 }

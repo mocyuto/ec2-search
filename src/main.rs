@@ -1,4 +1,5 @@
 use ec2_search::autoscaling;
+use ec2_search::awsutils::GlobalOpt;
 use ec2_search::instance;
 use ec2_search::targetgroup;
 use std::io;
@@ -9,6 +10,13 @@ use structopt::StructOpt;
 struct Cli {
     #[structopt(subcommand)]
     cmd: Command,
+
+    #[structopt(
+        global = true,
+        long,
+        help = "The region to use. Overrides config/env settings."
+    )]
+    region: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -33,10 +41,12 @@ enum CompletionOpt {
 
 #[tokio::main]
 async fn main() {
-    match Cli::from_args().cmd {
-        Command::Instance(opt) => instance::matcher(opt).await,
-        Command::TargetGroup(opt) => targetgroup::matcher(opt).await,
-        Command::AutoScalingGroup(opt) => autoscaling::matcher(opt).await,
+    let opt = Cli::from_args();
+    let global_opt = GlobalOpt { region: opt.region };
+    match opt.cmd {
+        Command::Instance(opt) => instance::matcher(global_opt, opt).await,
+        Command::TargetGroup(opt) => targetgroup::matcher(global_opt, opt).await,
+        Command::AutoScalingGroup(opt) => autoscaling::matcher(global_opt, opt).await,
         Command::Version => version(),
         Command::Completion(opt) => match opt {
             CompletionOpt::Bash => completion(Shell::Bash),

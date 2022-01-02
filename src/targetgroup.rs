@@ -1,4 +1,4 @@
-use crate::awsutils::config;
+use crate::awsutils::{config, GlobalOpt};
 use crate::utils::{get_values, print_table, split, Tag};
 use aws_sdk_elasticloadbalancingv2::Client;
 use itertools::Itertools;
@@ -37,17 +37,18 @@ pub struct SearchQueryOpt {
     show_all_tags: bool,
 }
 
-pub async fn matcher(opt: TargetGroupOpt) {
+pub async fn matcher(global_opt: GlobalOpt, opt: TargetGroupOpt) {
+    let cli = Client::new(&config(global_opt).await);
     match opt {
-        TargetGroupOpt::Info(opt) => info(opt).await,
-        TargetGroupOpt::LoadBalancerArn(opt) => load_balancer_arn(opt).await,
-        TargetGroupOpt::Port(opt) => port(opt).await,
-        TargetGroupOpt::Health(opt) => target_health(opt).await,
+        TargetGroupOpt::Info(opt) => info(&cli, opt).await,
+        TargetGroupOpt::LoadBalancerArn(opt) => load_balancer_arn(&cli, opt).await,
+        TargetGroupOpt::Port(opt) => port(&cli, opt).await,
+        TargetGroupOpt::Health(opt) => target_health(&cli, opt).await,
     }
 }
 
-async fn info(opt: SearchQueryOpt) {
-    let tgs = get_target_groups(&opt).await;
+async fn info(cli: &Client, opt: SearchQueryOpt) {
+    let tgs = get_target_groups(cli, &opt).await;
     let len = tgs.len();
 
     let tag_column: Vec<String> = if opt.show_all_tags {
@@ -87,8 +88,8 @@ async fn info(opt: SearchQueryOpt) {
     println!("counts: {}", len);
 }
 
-async fn load_balancer_arn(opt: SearchQueryOpt) {
-    let tgs = get_target_groups(&opt).await;
+async fn load_balancer_arn(cli: &Client, opt: SearchQueryOpt) {
+    let tgs = get_target_groups(cli, &opt).await;
     let len = tgs.len();
     let rows: Vec<Vec<String>> = tgs
         .into_iter()
@@ -103,8 +104,8 @@ async fn load_balancer_arn(opt: SearchQueryOpt) {
     println!("counts: {}", len);
 }
 
-async fn port(opt: SearchQueryOpt) {
-    let tgs = get_target_groups(&opt).await;
+async fn port(cli: &Client, opt: SearchQueryOpt) {
+    let tgs = get_target_groups(cli, &opt).await;
     let len = tgs.len();
     let rows: Vec<Vec<String>> = tgs
         .into_iter()
@@ -114,13 +115,13 @@ async fn port(opt: SearchQueryOpt) {
     println!("counts: {}", len);
 }
 
-async fn target_health(opt: SearchQueryOpt) {
-    let tgs = get_target_groups(&opt).await;
+async fn target_health(cli: &Client, opt: SearchQueryOpt) {
+    let tgs = get_target_groups(cli, &opt).await;
     if tgs.len() != 1 {
         println!("need to be narrowed to 1");
         return;
     }
-    let h = get_target_health(tgs.first().unwrap().arn.clone()).await;
+    let h = get_target_health(cli, tgs.first().unwrap().arn.clone()).await;
     let len = h.len();
     let rows: Vec<Vec<String>> = h
         .into_iter()
@@ -142,12 +143,11 @@ struct TargetGroup {
     lb_arn: Option<Vec<String>>,
     tags: Vec<Tag>,
 }
-async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
-    let client = Client::new(&config().await);
+async fn get_target_groups(cli: &Client, opt: &SearchQueryOpt) -> Vec<TargetGroup> {
     let mut m: Option<String> = None;
     let mut vector: Vec<TargetGroup> = vec![];
     loop {
-        let (mut v, mark) = target_group(&client, &m).await;
+        let (mut v, mark) = target_group(cli, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {
@@ -158,7 +158,7 @@ async fn get_target_groups(opt: &SearchQueryOpt) -> Vec<TargetGroup> {
         .into_iter()
         .filter(|t| search_name(&opt.query, &t.name, &t.lb_arn))
         .collect();
-    set_tags(&client, tgs).await
+    set_tags(cli, tgs).await
 }
 
 async fn target_group(
@@ -335,9 +335,8 @@ struct TargetHealth {
     port: String,
     status: String,
 }
-async fn get_target_health(arn: String) -> Vec<TargetHealth> {
-    let client = Client::new(&config().await);
-    match client
+async fn get_target_health(cli: &Client, arn: String) -> Vec<TargetHealth> {
+    match cli
         .describe_target_health()
         .target_group_arn(arn)
         .send()

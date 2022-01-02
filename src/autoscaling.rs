@@ -1,4 +1,4 @@
-use crate::awsutils::{config, datetime_str};
+use crate::awsutils::{config, datetime_str, GlobalOpt};
 use crate::utils::{get_values, print_table, split, Tag};
 use aws_sdk_autoscaling::model::Instance;
 use aws_sdk_autoscaling::Client;
@@ -43,15 +43,16 @@ pub struct SearchInfoQueryOpt {
     show_all_tags: bool,
 }
 
-pub async fn matcher(opt: AutoScalingGroupOpt) {
+pub async fn matcher(global_opt: GlobalOpt, opt: AutoScalingGroupOpt) {
+    let cli = Client::new(&config(global_opt).await);
     match opt {
-        AutoScalingGroupOpt::Info(opt) => info(opt).await,
-        AutoScalingGroupOpt::Activities(opt) => activities(opt).await,
-        AutoScalingGroupOpt::Instances(opt) => instances(opt).await,
+        AutoScalingGroupOpt::Info(opt) => info(&cli, opt).await,
+        AutoScalingGroupOpt::Activities(opt) => activities(&cli, opt).await,
+        AutoScalingGroupOpt::Instances(opt) => instances(&cli, opt).await,
     }
 }
-async fn info(opt: SearchInfoQueryOpt) {
-    let asg = get_autoscaling_groups(&SearchQueryOpt { query: opt.query }).await;
+async fn info(cli: &Client, opt: SearchInfoQueryOpt) {
+    let asg = get_autoscaling_groups(cli, &SearchQueryOpt { query: opt.query }).await;
     let len = asg.len();
 
     let tag_column: Vec<String> = if opt.show_all_tags {
@@ -96,13 +97,13 @@ async fn info(opt: SearchInfoQueryOpt) {
     print_table(header, rows);
     println!("counts: {}", len);
 }
-async fn activities(opt: SearchQueryOpt) {
-    let asg = get_autoscaling_groups(&opt).await;
+async fn activities(cli: &Client, opt: SearchQueryOpt) {
+    let asg = get_autoscaling_groups(cli, &opt).await;
     if asg.len() != 1 {
         println!("need to be narrowed to 1");
         return;
     }
-    let a = get_activities(asg.first().unwrap().name.clone()).await;
+    let a = get_activities(cli, asg.first().unwrap().name.clone()).await;
     let len = a.len();
     let rows: Vec<Vec<String>> = a
         .into_iter()
@@ -120,8 +121,8 @@ async fn activities(opt: SearchQueryOpt) {
     println!("counts: {}", len);
 }
 
-async fn instances(opt: SearchQueryOpt) {
-    let asg = get_autoscaling_groups(&opt).await;
+async fn instances(cli: &Client, opt: SearchQueryOpt) {
+    let asg = get_autoscaling_groups(cli, &opt).await;
     let rows: Vec<Vec<String>> = asg
         .into_iter()
         .flat_map(|a| {
@@ -165,12 +166,11 @@ struct AutoScalingGroup {
     tags: Vec<Tag>,
 }
 
-async fn get_autoscaling_groups(opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
-    let client = Client::new(&config().await);
+async fn get_autoscaling_groups(cli: &Client, opt: &SearchQueryOpt) -> Vec<AutoScalingGroup> {
     let mut m: Option<String> = None;
     let mut vector: Vec<AutoScalingGroup> = vec![];
     loop {
-        let (mut v, mark) = autoscaling_groups(&client, &m).await;
+        let (mut v, mark) = autoscaling_groups(cli, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {
@@ -292,8 +292,7 @@ struct Activity {
     start_at: String,
     end_at: String,
 }
-async fn get_activities(asg_name: String) -> Vec<Activity> {
-    let cli = Client::new(&config().await);
+async fn get_activities(cli: &Client, asg_name: String) -> Vec<Activity> {
     match cli
         .describe_scaling_activities()
         .auto_scaling_group_name(asg_name)

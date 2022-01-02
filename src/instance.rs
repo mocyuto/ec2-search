@@ -1,4 +1,4 @@
-use crate::awsutils::config;
+use crate::awsutils::{config, GlobalOpt};
 use crate::utils::{get_values, print_table, split, Tag};
 use aws_sdk_ec2::model::Tag as ec2_tag;
 use aws_sdk_ec2::Client;
@@ -52,16 +52,17 @@ pub struct SearchInfoQueryOpt {
     show_all_tags: bool,
 }
 
-pub async fn matcher(opt: InstanceOpt) {
+pub async fn matcher(global_opt: GlobalOpt, opt: InstanceOpt) {
+    let cli = Client::new(&config(global_opt).await);
     match opt {
-        InstanceOpt::Info(opt) => info(opt).await,
-        InstanceOpt::InstanceIds(opt) => instance_ids(opt).await,
-        InstanceOpt::Ips(opt) => instance_ips(opt).await,
-        InstanceOpt::DnsName(opt) => instance_private_dns(opt).await,
+        InstanceOpt::Info(opt) => info(&cli, opt).await,
+        InstanceOpt::InstanceIds(opt) => instance_ids(&cli, opt).await,
+        InstanceOpt::Ips(opt) => instance_ips(&cli, opt).await,
+        InstanceOpt::DnsName(opt) => instance_private_dns(&cli, opt).await,
     }
 }
-async fn info(opt: SearchInfoQueryOpt) {
-    let instances = get_instances(&SearchQueryOpt { query: opt.query }).await;
+async fn info(cli: &Client, opt: SearchInfoQueryOpt) {
+    let instances = get_instances(cli, &SearchQueryOpt { query: opt.query }).await;
     let tag_column: Vec<String> = if opt.show_all_tags {
         instances
             .iter()
@@ -152,16 +153,16 @@ async fn info(opt: SearchInfoQueryOpt) {
     }
 }
 
-async fn instance_ids(opt: SearchQueryOpt) {
-    let instances = get_instances(&opt).await;
+async fn instance_ids(cli: &Client, opt: SearchQueryOpt) {
+    let instances = get_instances(cli, &opt).await;
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances.into_iter().map(|i| vec![i.id, i.name]).collect();
     print_table(vec!["ID".to_string(), "Name".to_string()], rows);
     println!("counts: {}", len);
 }
 
-async fn instance_ips(opt: SearchQueryOpt) {
-    let instances = get_instances(&opt).await;
+async fn instance_ips(cli: &Client, opt: SearchQueryOpt) {
+    let instances = get_instances(cli, &opt).await;
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances
         .into_iter()
@@ -179,8 +180,8 @@ async fn instance_ips(opt: SearchQueryOpt) {
 
     println!("counts: {}", len);
 }
-async fn instance_private_dns(opt: SearchQueryOpt) {
-    let instances = get_instances(&opt).await;
+async fn instance_private_dns(cli: &Client, opt: SearchQueryOpt) {
+    let instances = get_instances(cli, &opt).await;
     let len = instances.len();
     let rows: Vec<Vec<String>> = instances
         .into_iter()
@@ -219,12 +220,11 @@ struct Instance {
     tags: Vec<Tag>,
 }
 
-async fn get_instances(opt: &SearchQueryOpt) -> Vec<Instance> {
-    let client = Client::new(&config().await);
+async fn get_instances(client: &Client, opt: &SearchQueryOpt) -> Vec<Instance> {
     let mut m: Option<String> = None;
     let mut vector: Vec<Instance> = vec![];
     loop {
-        let (mut v, mark) = instances(&client, &m).await;
+        let (mut v, mark) = instances(client, &m).await;
         m = mark;
         vector.append(&mut v);
         if m.is_none() {

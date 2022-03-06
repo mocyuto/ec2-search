@@ -2,6 +2,7 @@ use crate::awsutils::{config, GlobalOpt};
 use crate::utils::{get_values, print_table, split, Tag};
 use aws_sdk_elasticloadbalancingv2::Client;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use structopt::StructOpt;
 
@@ -304,13 +305,9 @@ fn test_search_name() {
         true
     );
 }
-
+static ALB: Lazy<Regex> = Lazy::new(|| Regex::new(r"^.+loadbalancer/app/(.+)/.+$").unwrap());
+static NLB: Lazy<Regex> = Lazy::new(|| Regex::new(r"^.+loadbalancer/net/(.+)/.+$").unwrap());
 fn extract_lb_name(lb_arn: &str) -> String {
-    lazy_static! {
-        static ref ALB: Regex = Regex::new(r"^.+loadbalancer/app/(.+)/.+$").unwrap();
-        static ref NLB: Regex = Regex::new(r"^.+loadbalancer/net/(.+)/.+$").unwrap();
-    }
-
     if lb_arn.contains(&"loadbalancer/app/") {
         let c = ALB.captures(lb_arn).unwrap();
         return c[1].to_string();
